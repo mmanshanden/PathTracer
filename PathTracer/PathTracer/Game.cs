@@ -6,7 +6,7 @@ using System.Text;
 
 namespace PathTracer
 {
-    class Game
+    class Game : IDisposable
     {
         private int width, height;
 
@@ -37,20 +37,31 @@ namespace PathTracer
 
             this.screen.Dispose();
             this.screen = new Image(width, height);
+            frame = 0;
         }
 
         public void Update(float dt)
         {
-            
+
         }
+
+        private uint frame = 0;
 
         public void Draw(float dt)
         {
             this.compute.Use();
+            this.compute.SetUniform("frame", frame++);
             GL.DispatchCompute(this.width / 8, this.height / 8, 1);
 
             this.quad.Use();
             GL.DrawArrays(PrimitiveType.TriangleStrip, 0, 4);
+        }
+
+        public void Dispose()
+        {
+            this.quad.Dispose();
+            this.compute.Dispose();
+            this.screen.Dispose();
         }
     }
 }

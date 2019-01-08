@@ -1,5 +1,6 @@
 ﻿using OpenTK;
 using OpenTK.Graphics.OpenGL4;
+using OpenTK.Input;
 using System;
 
 namespace PathTracer
@@ -33,6 +34,17 @@ namespace PathTracer
 
             GL.Viewport(0, 0, this.Width, this.Height);
             this.game.Resize(this.Width, this.Height);
+        }
+
+        protected override void OnKeyDown(KeyboardKeyEventArgs e)
+        {
+            base.OnKeyDown(e);
+
+            if (e.Key == Key.Escape)
+            {
+                this.game.Dispose();
+                this.Exit();
+            }
         }
 
         protected override void OnUpdateFrame(FrameEventArgs e)

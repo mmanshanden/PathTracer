@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Numerics;
 using OpenTK.Graphics.OpenGL4;
 
 namespace PathTracer.Library.Graphics
@@ -67,6 +68,54 @@ namespace PathTracer.Library.Graphics
         protected override void FreeGraphicsResource()
         {
             GL.DeleteProgram(this.Handle);
+        }
+
+        public void SetUniform(string name, int value)
+        {
+            this.Use();
+            GL.Uniform1(GL.GetUniformLocation(this.Handle, name), value);
+        }
+
+        public void SetUniform(string name, uint value)
+        {
+            this.Use();
+            GL.Uniform1(GL.GetUniformLocation(this.Handle, name), value);
+        }
+
+        public void SetUniform(string name, int[] value)
+        {
+            this.Use();
+            GL.Uniform1(GL.GetUniformLocation(this.Handle, name), value.Length, value);
+        }
+
+        public void SetUniform(string name, float value)
+        {
+            this.Use();
+            GL.Uniform1(GL.GetUniformLocation(this.Handle, name), value);
+        }
+
+        public void SetUniform(string name, double value)
+        {
+            this.Use();
+            GL.Uniform1(GL.GetUniformLocation(this.Handle, name), value);
+        }
+
+        public void SetUniform(string name, Vector2 value)
+        {
+            this.Use();
+            GL.Uniform2(GL.GetUniformLocation(this.Handle, name), value.X, value.Y);
+        }
+
+        public void SetUniform(string name, Vector3 value)
+        {
+            this.Use();
+            GL.Uniform3(GL.GetUniformLocation(this.Handle, name), value.X, value.Y, value.Z);
+        }
+
+        public void SetUniform(string name, Vector4 value)
+        {
+            this.Use();
+            GL.Uniform4(GL.GetUniformLocation(this.Handle, name), value.X, value.Y, value.Z, value.W);
         }
     }
 }
