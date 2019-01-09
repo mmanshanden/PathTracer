@@ -74,7 +74,7 @@ namespace PathTracer
 
             if (this.time > 0.5)
             {
-                this.fps = (this.frames << 1) + " | " + (this.time / this.frames);
+                this.fps = (this.frames << 1) + " | " + (this.time / this.frames) + " | " + this.game.Samples;
                 this.time = 0.0;
                 this.frames = 0;
             }

@@ -1,6 +1,9 @@
-﻿#version 450
+﻿#version 430
 #define FLT_MAX 3.402823466e+38
 #define FLT_MIN 1.175494351e-38
+#define EPSILON 0.001
+#define PI      3.141592653589793238462643383279502
+#define INVPI   0.318309886183790671537767526745028
 
 layout(local_size_x = 8, local_size_y = 8) in;
 
@@ -27,56 +30,60 @@ struct Ray
     vec3 reciprocal;
 };
 
+struct Material
+{
+    bool emissive;
+    vec4 color;
+};
+
 struct Hit
 {
     float distance;
     vec3 position;
     vec3 normal;
+    int material;
 };
 
 struct Sphere
 {
     vec3 center;
     float radius;
+    int material;
 };
 
 layout(rgba32f, binding=0) uniform image2D screen_buffer;
 
 uniform uint   frame;
+uniform uint   samples;
 uniform Screen screen;
 uniform Camera camera;
 
+uint seed;
 
-uint global_id(ivec2 screen_pos) 
-{
-    const uint width = uint(gl_NumWorkGroups.x * gl_WorkGroupSize.x);
-    return width * screen_pos.y + screen_pos.x;
-}
-
-void xor_shift(inout uint seed)
+void xor_shift()
 {
     seed ^= seed << 13;
     seed ^= seed >> 17;
     seed ^= seed << 05;
 }
 
-float random_float(inout uint seed)
+float random_float()
 {
-    xor_shift(seed);
+    xor_shift();
     return seed * (1.0 / 4294967295.0);
 }
 
-void update_screen_buffer(ivec2 screen_pos, vec4 color)
+void update_screen_buffer(const ivec2 screen_pos, const vec4 color)
 {
     vec4 prev = imageLoad(screen_buffer, screen_pos);
-    vec4 new = (prev * frame + color) / (frame + 1);
+    vec4 new = (prev * samples + color) / (samples + 1);
     imageStore(screen_buffer, screen_pos, new);
 }
 
-Ray generate_ray(ivec2 screen_pos)
+Ray generate_ray(const ivec2 screen_pos)
 {
-    const float x = screen_pos.x * screen.rcp_width - 0.5;
-    const float y = screen_pos.y * screen.rcp_height - 0.5;
+    const float x = (random_float() + screen_pos.x) * screen.rcp_width - 0.5;
+    const float y = (random_float() + screen_pos.y) * screen.rcp_height - 0.5;
 
     const vec3 c = camera.forward * camera.focal_distance;
     const vec3 d = normalize(c + camera.right * x * screen.ar + camera.up * y);
@@ -89,30 +96,30 @@ Ray generate_ray(ivec2 screen_pos)
     return r;
 }
 
-void ray_sphere_intersection(Ray ray, Sphere sphere, inout Hit hit)
+void ray_sphere_intersection(Ray ray, const Sphere sphere, inout Hit hit)
 {
-    vec3 v = ray.origin - sphere.center;
+    const vec3 v = ray.origin - sphere.center;
 
-    float a = dot(ray.direction, ray.direction);
-    float b = dot(2 * ray.direction, v);
-    float c = dot(v, v) - sphere.radius * sphere.radius;
+    const float a = dot(ray.direction, ray.direction);
+    const float b = dot(2 * ray.direction, v);
+    const float c = dot(v, v) - sphere.radius * sphere.radius;
 
-    float d = b * b - 4 * a * c;
+    const float d = b * b - 4 * a * c;
 
     if (d < 0)
     {
         return;
     }
 
-    float sqrtd = sqrt(d);
+    const float sqrtd = sqrt(d);
+    const float rcp = 1.0 / (2 * a);
 
-    float rcp = 1.0 / (2 * a);
     float t0 = (-b + sqrtd) * rcp;
     float t1 = (-b - sqrtd) * rcp;
 
     if (t0 > t1)
     {
-        float tmp = t1;
+        const float tmp = t1;
         t1 = t0;
         t0 = tmp;
     }
@@ -132,10 +139,11 @@ void ray_sphere_intersection(Ray ray, Sphere sphere, inout Hit hit)
         hit.distance = t0;
         hit.position = ray.origin + ray.direction * t0;
         hit.normal   = normalize(hit.position - sphere.center);
+        hit.material = sphere.material;
     }
 }
 
-bool ray_aabb_test(Ray ray, vec3 minimum, vec3 maximum)
+bool ray_aabb_test(const Ray ray, const vec3 minimum, const vec3 maximum)
 {
     const float t1 = (minimum.x - ray.origin.x) * ray.reciprocal.x;
     const float t2 = (maximum.x - ray.origin.x) * ray.reciprocal.x;
@@ -150,38 +158,89 @@ bool ray_aabb_test(Ray ray, vec3 minimum, vec3 maximum)
     return (tmax > 0 && tmin < tmax);
 }
 
+Hit intersect_scene(const Ray ray)
+{
+    Hit hit;
+    hit.distance = FLT_MAX;
+    hit.material = -1;
+
+    ray_sphere_intersection(ray, Sphere(vec3(0, 1, 0), 0.5, 0), hit);
+    ray_sphere_intersection(ray, Sphere(vec3(0, 1, 1), 0.5, 1), hit);
+    ray_sphere_intersection(ray, Sphere(vec3(1, 1, 0), 0.5, 2), hit);
+    ray_sphere_intersection(ray, Sphere(vec3(1, 4, 1), 1, 4), hit);
+    ray_sphere_intersection(ray, Sphere(vec3(0, -100, 0), 99.99, 3), hit);
+
+    return hit;
+}
+
+vec3 diffuse_reflection(const vec3 normal)
+{
+    const float r0 = random_float();
+    const float r1 = random_float();
+
+    const float r = sqrt(1.0 - r0 * r0);
+    const float theta = 2.0 * PI * r1;
+
+    const float x = cos(theta) * r;
+    const float y = sin(theta) * r;
+
+    const vec3 refl = vec3(x, y, r0);
+
+    if (dot(normal, refl) < 0)
+    {
+        return refl * -1;
+    }
+
+    return refl;
+}
+
+const Material materials[5] = Material[] (
+    Material(false, vec4(1, 0, 0, 1)),
+    Material(false, vec4(0, 1, 0, 1)),
+    Material(false, vec4(0, 0, 1, 1)),
+    Material(false, vec4(1, 1, 1, 1)),
+    Material(true,  vec4(50, 50, 45, 1))
+);
+
+vec4 Sample(Ray ray)
+{
+    vec4 color = vec4(1);
+
+    for (int i = 0; i < 10; i++)
+    {
+        Hit hit = intersect_scene(ray);
+
+        if (hit.material == -1)
+        {
+            return color * vec4(142.0 / 255.0, 178.0 / 255.0, 237.0 / 255.0, 1);
+        }
+
+        Material mat = materials[hit.material];
+
+        if (mat.emissive)
+        {
+            return color * mat.color;
+        }
+
+        vec3 r = diffuse_reflection(hit.normal);
+        vec4 brdf = mat.color;
+        color = brdf * color * dot(hit.normal, r);
+
+        ray.origin     = hit.position + r * EPSILON;
+        ray.direction  = r;
+        ray.reciprocal = 1.0 / r;
+    }
+
+    return color;
+}
+
 void main() 
 {
     const ivec2 screen_pos = ivec2(gl_GlobalInvocationID.xy);
-    
-    uint seed = (screen_pos.x * 100999001 + screen_pos.y * 152252251 + frame * 377000773);
+    seed = screen_pos.x * 100999001 + screen_pos.y * 152252251 + frame * 377000773;
     
     const Ray ray = generate_ray(screen_pos);
-
-    vec4 color;
-
-    Sphere s1;
-    s1.center = vec3(1, 0, 0);
-    s1.radius = 1.0;
-
-    Sphere s2;
-    s2.center = vec3(-1, 0, 0);
-    s2.radius = 1.0;
-
-    Hit hit;
-    hit.distance = FLT_MAX;
-
-    ray_sphere_intersection(ray, s1, hit);
-    ray_sphere_intersection(ray, s2, hit);
-
-    if (hit.distance < FLT_MAX)
-    {
-        color = vec4(hit.normal, 1);
-    }
-    else
-    {
-        color = vec4(0);
-    }
+    const vec4 color = Sample(ray);
 
     update_screen_buffer(screen_pos, color);
 }
