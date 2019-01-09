@@ -13,6 +13,8 @@ namespace PathTracer
         private int frames;
         private double time;
 
+        private KeyboardState keystate;
+
         public Window(int width, int height)
             : base(width, height)
         {
@@ -45,13 +47,22 @@ namespace PathTracer
                 this.game.Dispose();
                 this.Exit();
             }
+
+            this.keystate = e.Keyboard;
+        }
+
+        protected override void OnKeyUp(KeyboardKeyEventArgs e)
+        {
+            base.OnKeyUp(e);
+
+            this.keystate = e.Keyboard;
         }
 
         protected override void OnUpdateFrame(FrameEventArgs e)
         {
             base.OnUpdateFrame(e);
-
-            this.game.Update((float)e.Time);
+            
+            this.game.Update((float)e.Time, this.keystate);
         }
 
         protected override void OnRenderFrame(FrameEventArgs e)
