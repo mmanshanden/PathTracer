@@ -5,6 +5,11 @@
 #define PI      3.141592653589793238462643383279502
 #define INVPI   0.318309886183790671537767526745028
 
+#define MATERIAL_DIFFUSE 0
+#define MATERIAL_EMISSIVE 1
+#define MATERIAL_MIRROR 2
+#define MATERIAL_DIELECTRIC 3
+
 layout(local_size_x = 8, local_size_y = 8) in;
 
 struct Screen
@@ -33,7 +38,8 @@ struct Ray
 struct Material
 {
     vec4 color;
-    int emissive;
+    int type;
+    float index;
 };
 
 struct Hit
@@ -177,6 +183,14 @@ Hit intersect_scene(const Ray ray)
     return hit;
 }
 
+float schlick(const vec3 direction, const vec3 normal, const float n1, const float n2)
+{
+    float r0 = (n1 - n2) / (n1 + n2);
+    r0 = r0 * r0;
+
+    return r0 + (1.0 - r0) * pow(1 - dot(normal, -direction), 5);
+}
+
 vec3 diffuse_reflection(const vec3 normal)
 {
     const float r0 = random_float();
@@ -211,20 +225,73 @@ vec4 Sample(Ray ray)
             return color * vec4(142.0 / 255.0, 178.0 / 255.0, 237.0 / 255.0, 1);
         }
 
-        Material mat = materials[hit.material];
+        const Material mat = materials[hit.material];
 
-        if (mat.emissive == 1)
+        if (mat.type == MATERIAL_EMISSIVE)
         {
             return color * mat.color;
         }
 
-        vec3 r = diffuse_reflection(hit.normal);
-        vec4 brdf = mat.color;
-        color = brdf * color * dot(hit.normal, r);
+        if (mat.type == MATERIAL_DIELECTRIC)
+        {
+            float n1 = 1.0;
+            float n2 = mat.index;
 
-        ray.origin     = hit.position + r * EPSILON;
-        ray.direction  = r;
-        ray.reciprocal = 1.0 / r;
+            if (dot(ray.direction, hit.normal) > 0)
+            {
+                n1 = mat.index;
+                n2 = 1.0;
+
+                hit.normal = hit.normal * -1;
+            }
+
+            const float s = schlick(ray.direction, hit.normal, n1, n2);
+            const float r = random_float();
+
+            if (r < s)
+            {
+                vec3 r = reflect(ray.direction, hit.normal);
+                color = color * mat.color;
+            
+                ray.origin = hit.position + r * EPSILON;
+                ray.direction = r;
+                ray.reciprocal = 1.0 / r;   
+            }
+            else
+            {
+                vec3 r = refract(ray.direction, hit.normal, n1 / n2);
+                color = color * mat.color;
+            
+                ray.origin = hit.position + r * EPSILON;
+                ray.direction = r;
+                ray.reciprocal = 1.0 / r;   
+            }
+
+            continue;
+        }
+
+        if (mat.type == MATERIAL_MIRROR)
+        {
+            vec3 r = reflect(ray.direction, hit.normal);
+            color = color * mat.color;
+            
+            ray.origin = hit.position + r * EPSILON;
+            ray.direction = r;
+            ray.reciprocal = 1.0 / r;
+
+            continue;
+        }
+
+        else 
+        {
+            vec3 r = diffuse_reflection(hit.normal);
+            vec4 brdf = mat.color;
+            color = brdf * color * dot(hit.normal, r);
+
+            ray.origin     = hit.position + r * EPSILON;
+            ray.direction  = r;
+            ray.reciprocal = 1.0 / r;
+        }
     }
 
     return color;

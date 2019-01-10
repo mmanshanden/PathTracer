@@ -40,12 +40,20 @@ namespace PathTracer
                 float b = (float)rng.NextDouble();
 
                 Vector4 color = new Vector4(r, g, b, 1);
-                int emissive = rng.Next(100) > 70 ? 1 : 0;
+                bool emissive = rng.Next(100) > 80;
+
+                int type = (int)MaterialType.Emissive;
+
+                if (!emissive)
+                {
+                    type = rng.Next(5);
+                }
 
                 yield return new Material()
                 {
-                    Color = emissive == 1 ? color * 5 : color,
-                    Emissive = emissive
+                    Color = emissive ? color * 50 : color,
+                    Type = (MaterialType)type,
+                    Index = 1.5f
                 };
             }
         }
@@ -82,7 +90,7 @@ namespace PathTracer
             this.materials.Add(new Material()
             {
                 Color = new Vector4(1, 1, 1, 1),
-                Emissive = 0
+                Type = MaterialType.Diffuse
             });
 
             this.spheres = new Buffer<Sphere>(2);
@@ -91,9 +99,9 @@ namespace PathTracer
                 CenterRadius = new Vector4(0, -1000, 0, 999.9f),
                 MaterialIndex = 0
             });
-
+            
             this.materials.AddRange(RandomMaterials(31, rng));
-            this.spheres.AddRange(RandomSpheres(60, rng));
+            this.spheres.AddRange(RandomSpheres(20, rng));
             
             this.materials.CopyToDevice();
             this.spheres.CopyToDevice();
