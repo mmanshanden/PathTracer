@@ -148,7 +148,7 @@ void ray_sphere_intersection(Ray ray, const Sphere sphere, inout Hit hit)
     }
 }
 
-bool ray_aabb_test(const Ray ray, const vec3 minimum, const vec3 maximum)
+bool ray_aabb_test(Ray ray, const vec3 minimum, const vec3 maximum)
 {
     const float t1 = (minimum.x - ray.origin.x) * ray.reciprocal.x;
     const float t2 = (maximum.x - ray.origin.x) * ray.reciprocal.x;
@@ -163,7 +163,7 @@ bool ray_aabb_test(const Ray ray, const vec3 minimum, const vec3 maximum)
     return (tmax > 0 && tmin < tmax);
 }
 
-Hit intersect_scene(const Ray ray)
+Hit intersect_scene(Ray ray)
 {
     Hit hit;
     hit.distance = FLT_MAX;
@@ -293,7 +293,7 @@ void main()
     const ivec2 screen_pos = ivec2(gl_GlobalInvocationID.xy);
     uint seed = screen_pos.x * 100999001 + screen_pos.y * 152252251 + frame * 377000773;
     
-    const Ray ray = generate_ray(screen_pos, seed);
+    Ray ray = generate_ray(screen_pos, seed);
     const vec4 color = Sample(ray, seed);
 
     update_screen_buffer(screen_pos, color);
