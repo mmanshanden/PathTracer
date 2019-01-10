@@ -65,18 +65,16 @@ uniform uint   samples;
 uniform Screen screen;
 uniform Camera camera;
 
-uint seed;
-
-void xor_shift()
+void xor_shift(inout uint seed)
 {
     seed ^= seed << 13;
     seed ^= seed >> 17;
     seed ^= seed << 05;
 }
 
-float random_float()
+float random_float(inout uint seed)
 {
-    xor_shift();
+    xor_shift(seed);
     return seed * (1.0 / 4294967295.0);
 }
 
@@ -87,10 +85,10 @@ void update_screen_buffer(const ivec2 screen_pos, const vec4 color)
     imageStore(screen_buffer, screen_pos, new);
 }
 
-Ray generate_ray(const ivec2 screen_pos)
+Ray generate_ray(const ivec2 screen_pos, inout uint seed)
 {
-    const float x = (random_float() + screen_pos.x) * screen.rcp_width - 0.5;
-    const float y = (random_float() + screen_pos.y) * screen.rcp_height - 0.5;
+    const float x = (random_float(seed) + screen_pos.x) * screen.rcp_width - 0.5;
+    const float y = (random_float(seed) + screen_pos.y) * screen.rcp_height - 0.5;
 
     const vec3 c = camera.forward * camera.focal_distance;
     const vec3 d = normalize(c + camera.right * x * screen.ar + camera.up * y);
@@ -191,10 +189,10 @@ float schlick(const vec3 direction, const vec3 normal, const float n1, const flo
     return r0 + (1.0 - r0) * pow(1 - dot(normal, -direction), 5);
 }
 
-vec3 diffuse_reflection(const vec3 normal)
+vec3 diffuse_reflection(const vec3 normal, inout uint seed)
 {
-    const float r0 = random_float();
-    const float r1 = random_float();
+    const float r0 = random_float(seed);
+    const float r1 = random_float(seed);
 
     const float r = sqrt(1.0 - r0 * r0);
     const float theta = 2.0 * PI * r1;
@@ -212,7 +210,7 @@ vec3 diffuse_reflection(const vec3 normal)
     return refl;
 }
 
-vec4 Sample(Ray ray)
+vec4 Sample(Ray ray, inout uint seed)
 {
     vec4 color = vec4(1);
 
@@ -243,29 +241,22 @@ vec4 Sample(Ray ray)
                 n2 = 1.0;
 
                 hit.normal = hit.normal * -1;
+
+                color.x = exp(-mat.color.x * hit.distance);
+                color.y = exp(-mat.color.y * hit.distance);
+                color.z = exp(-mat.color.z * hit.distance);
             }
 
             const float s = schlick(ray.direction, hit.normal, n1, n2);
-            const float r = random_float();
 
-            if (r < s)
-            {
-                vec3 r = reflect(ray.direction, hit.normal);
-                color = color * mat.color;
+            const vec3 r = random_float(seed) < s ? reflect(ray.direction, hit.normal) 
+                                                  : refract(ray.direction, hit.normal, n1 / n2);
+
+            color = color * mat.color;
             
-                ray.origin = hit.position + r * EPSILON;
-                ray.direction = r;
-                ray.reciprocal = 1.0 / r;   
-            }
-            else
-            {
-                vec3 r = refract(ray.direction, hit.normal, n1 / n2);
-                color = color * mat.color;
-            
-                ray.origin = hit.position + r * EPSILON;
-                ray.direction = r;
-                ray.reciprocal = 1.0 / r;   
-            }
+            ray.origin = hit.position + r * EPSILON;
+            ray.direction = r;
+            ray.reciprocal = 1.0 / r;   
 
             continue;
         }
@@ -284,7 +275,7 @@ vec4 Sample(Ray ray)
 
         else 
         {
-            vec3 r = diffuse_reflection(hit.normal);
+            vec3 r = diffuse_reflection(hit.normal, seed);
             vec4 brdf = mat.color;
             color = brdf * color * dot(hit.normal, r);
 
@@ -300,10 +291,10 @@ vec4 Sample(Ray ray)
 void main() 
 {
     const ivec2 screen_pos = ivec2(gl_GlobalInvocationID.xy);
-    seed = screen_pos.x * 100999001 + screen_pos.y * 152252251 + frame * 377000773;
+    uint seed = screen_pos.x * 100999001 + screen_pos.y * 152252251 + frame * 377000773;
     
-    const Ray ray = generate_ray(screen_pos);
-    const vec4 color = Sample(ray);
+    const Ray ray = generate_ray(screen_pos, seed);
+    const vec4 color = Sample(ray, seed);
 
     update_screen_buffer(screen_pos, color);
 }
