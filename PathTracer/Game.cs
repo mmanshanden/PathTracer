@@ -2,6 +2,7 @@
 using OpenTK.Input;
 using PathTracer.Library.Graphics;
 using System;
+using System.Collections.Generic;
 using System.Numerics;
 
 namespace PathTracer
@@ -16,6 +17,8 @@ namespace PathTracer
         private ShaderProgram quad;
         private ShaderProgram compute;
         private Image screen;
+        private Buffer<Material> materials;
+        private Buffer<Sphere> spheres;
 
         private Camera camera;
 
@@ -27,6 +30,43 @@ namespace PathTracer
         {
         }
 
+
+        private static IEnumerable<Material> RandomMaterials(int count, Random rng)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                float r = (float)rng.NextDouble();
+                float g = (float)rng.NextDouble();
+                float b = (float)rng.NextDouble();
+
+                Vector4 color = new Vector4(r, g, b, 1);
+                int emissive = rng.Next(100) > 70 ? 1 : 0;
+
+                yield return new Material()
+                {
+                    Color = emissive == 1 ? color * 5 : color,
+                    Emissive = emissive
+                };
+            }
+        }
+
+        private static IEnumerable<Sphere> RandomSpheres(int count, Random rng)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                float x = (float)rng.NextDouble() * 10.0f - 10.0f;
+                float y = (float)rng.NextDouble() * 10.0f + 1.2f;
+                float z = (float)rng.NextDouble() * 20.0f - 10.0f;
+                float r = (float)rng.NextDouble() * 1.0f + 0.2f;
+
+                yield return new Sphere()
+                {
+                    CenterRadius = new Vector4(x, y, z, r),
+                    MaterialIndex = rng.Next(30)
+                };
+            }
+        }
+
         public void Initialize()
         {
             this.quad = new ShaderProgram(
@@ -35,6 +75,28 @@ namespace PathTracer
 
             this.compute = new ShaderProgram(
                 ShaderArgument.Load(ShaderType.ComputeShader, "Shaders/compute.glsl"));
+
+            Random rng = new Random();
+
+            this.materials = new Buffer<Material>(1);
+            this.materials.Add(new Material()
+            {
+                Color = new Vector4(1, 1, 1, 1),
+                Emissive = 0
+            });
+
+            this.spheres = new Buffer<Sphere>(2);
+            this.spheres.Add(new Sphere()
+            {
+                CenterRadius = new Vector4(0, -1000, 0, 999.9f),
+                MaterialIndex = 0
+            });
+
+            this.materials.AddRange(RandomMaterials(31, rng));
+            this.spheres.AddRange(RandomSpheres(60, rng));
+            
+            this.materials.CopyToDevice();
+            this.spheres.CopyToDevice();
 
             this.screen = new Image(0, 0);
             this.camera = new Camera(new Vector3(0, 2, -10), Vector3.Zero);

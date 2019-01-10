@@ -32,8 +32,8 @@ struct Ray
 
 struct Material
 {
-    bool emissive;
     vec4 color;
+    int emissive;
 };
 
 struct Hit
@@ -46,12 +46,13 @@ struct Hit
 
 struct Sphere
 {
-    vec3 center;
-    float radius;
+    vec4 center_radius;
     int material;
 };
 
 layout(rgba32f, binding=0) uniform image2D screen_buffer;
+layout(std430,  binding=1) buffer          material_buffer { Material materials[]; };
+layout(std430,  binding=2) buffer          sphere_buffer   { Sphere spheres[]; };
 
 uniform uint   frame;
 uniform uint   samples;
@@ -98,11 +99,11 @@ Ray generate_ray(const ivec2 screen_pos)
 
 void ray_sphere_intersection(Ray ray, const Sphere sphere, inout Hit hit)
 {
-    const vec3 v = ray.origin - sphere.center;
+    const vec3 v = ray.origin - sphere.center_radius.xyz;
 
     const float a = dot(ray.direction, ray.direction);
     const float b = dot(2 * ray.direction, v);
-    const float c = dot(v, v) - sphere.radius * sphere.radius;
+    const float c = dot(v, v) - sphere.center_radius.w * sphere.center_radius.w;
 
     const float d = b * b - 4 * a * c;
 
@@ -138,7 +139,7 @@ void ray_sphere_intersection(Ray ray, const Sphere sphere, inout Hit hit)
     {
         hit.distance = t0;
         hit.position = ray.origin + ray.direction * t0;
-        hit.normal   = normalize(hit.position - sphere.center);
+        hit.normal   = normalize(hit.position - sphere.center_radius.xyz);
         hit.material = sphere.material;
     }
 }
@@ -164,11 +165,14 @@ Hit intersect_scene(const Ray ray)
     hit.distance = FLT_MAX;
     hit.material = -1;
 
-    ray_sphere_intersection(ray, Sphere(vec3(0, 1, 0), 0.5, 0), hit);
-    ray_sphere_intersection(ray, Sphere(vec3(0, 1, 1), 0.5, 1), hit);
-    ray_sphere_intersection(ray, Sphere(vec3(1, 1, 0), 0.5, 2), hit);
-    ray_sphere_intersection(ray, Sphere(vec3(1, 4, 1), 1, 4), hit);
-    ray_sphere_intersection(ray, Sphere(vec3(0, -100, 0), 99.99, 3), hit);
+    for (int i = 0; i < 60; i++)
+    {        
+        // THIS DOES NOT WORK (FOR SOME REASON):
+        // ray_sphere_intersection(ray, spheres[i], hit);
+
+        Sphere s = Sphere(spheres[i].center_radius, spheres[i].material);
+        ray_sphere_intersection(ray, s, hit);
+    }
 
     return hit;
 }
@@ -194,14 +198,6 @@ vec3 diffuse_reflection(const vec3 normal)
     return refl;
 }
 
-const Material materials[5] = Material[] (
-    Material(false, vec4(1, 0, 0, 1)),
-    Material(false, vec4(0, 1, 0, 1)),
-    Material(false, vec4(0, 0, 1, 1)),
-    Material(false, vec4(1, 1, 1, 1)),
-    Material(true,  vec4(50, 50, 45, 1))
-);
-
 vec4 Sample(Ray ray)
 {
     vec4 color = vec4(1);
@@ -210,14 +206,14 @@ vec4 Sample(Ray ray)
     {
         Hit hit = intersect_scene(ray);
 
-        if (hit.material == -1)
+        if (hit.material < 0)
         {
             return color * vec4(142.0 / 255.0, 178.0 / 255.0, 237.0 / 255.0, 1);
         }
 
         Material mat = materials[hit.material];
 
-        if (mat.emissive)
+        if (mat.emissive == 1)
         {
             return color * mat.color;
         }
