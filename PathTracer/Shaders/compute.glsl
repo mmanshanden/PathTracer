@@ -75,7 +75,7 @@ void xor_shift(inout uint seed)
 float random_float(inout uint seed)
 {
     xor_shift(seed);
-    return seed * (1.0 / 4294967295.0);
+    return float(seed) * (1.0 / 4294967295.0);
 }
 
 void update_screen_buffer(const ivec2 screen_pos, const vec4 color)
