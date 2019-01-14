@@ -193,23 +193,19 @@ float schlick(const vec3 direction, const vec3 normal, const float n1, const flo
 
 vec3 diffuse_reflection(const vec3 normal, inout uint seed)
 {
+    // "random" unit vector
+    const vec3 axis = abs(normal.x) > 0.95 ? vec3(0, 1, 0) : vec3(1, 0, 0);
+
+    const vec3 u = normalize(cross(normal, axis));
+    const vec3 v = cross(u, normal);
+
     const float r0 = random_float(seed);
     const float r1 = random_float(seed);
 
-    const float r = sqrt(1.0 - r0 * r0);
+    const float r = sqrt(r0);
     const float theta = 2.0 * PI * r1;
 
-    const float x = cos(theta) * r;
-    const float y = sin(theta) * r;
-
-    const vec3 refl = vec3(x, y, r0);
-
-    if (dot(normal, refl) < 0)
-    {
-        return refl * -1;
-    }
-
-    return refl;
+    return r * cos(theta) * u + r * sin(theta) * v + sqrt(1.0 - r0) * normal;
 }
 
 vec4 brdf(const Material mat)
@@ -217,9 +213,9 @@ vec4 brdf(const Material mat)
     return mat.color * INVPI;
 }
 
-float pdf()
+float pdf(const vec3 n, const vec3 r)
 {
-    return 1.0 / (2.0 * PI);
+    return dot(n, r) * INVPI;
 }
 
 vec4 Sample(Ray ray, inout uint seed)
@@ -283,9 +279,9 @@ vec4 Sample(Ray ray, inout uint seed)
         }
 
         if (mat.type == MATERIAL_DIFFUSE)
-        {
+        {            
             new_dir    = diffuse_reflection(hit.normal, seed);
-            throughput = brdf(mat) * throughput * dot(hit.normal, new_dir) / pdf();
+            throughput = brdf(mat) * throughput * dot(hit.normal, new_dir) / pdf(hit.normal, new_dir);
         }
 
         ray.origin     = hit.position + new_dir * EPSILON;

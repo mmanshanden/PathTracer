@@ -42,25 +42,25 @@ namespace PathTracer
                 float b = (float)rng.NextDouble();
 
                 Vector4 color = new Vector4(r, g, b, 1);
-                bool emissive = rng.Next(100) > 80;
+                bool emissive = rng.Next(100) > 90;
 
                 int type = (int)MaterialType.Emissive;
 
                 if (!emissive)
                 {
-                    type = rng.Next(5);
+                    type = rng.Next(4);
 
                     while (type == (int)MaterialType.Emissive)
                     {
-                        type = rng.Next();
+                        type = rng.Next(4);
                     }
                 }
 
                 yield return new Material()
                 {
-                    Color = emissive ? color * 50 : color,
+                    Color = emissive ? color * 15 : color,
                     Type = (MaterialType)type,
-                    Index = 1.5f
+                    Index = 1.2f
                 };
             }
         }
@@ -91,9 +91,10 @@ namespace PathTracer
             this.compute = new ShaderProgram(
                 ShaderArgument.Load(ShaderType.ComputeShader, "Shaders/compute.glsl"));
 
-            Random rng = new Random();
+            Random rng = new Random(1);
 
             this.materials = new Buffer<Material>(1);
+            this.spheres = new Buffer<Sphere>(2);
 
             this.materials.Add(new Material()
             {
@@ -101,95 +102,19 @@ namespace PathTracer
                 Type = MaterialType.Diffuse
             });
 
-            this.materials.Add(new Material()
-            {
-                Color = new Vector4(1, 0.4f, 0.4f, 0),
-                Type = MaterialType.Mirror
-            });
-
-            this.materials.Add(new Material()
-            {
-                Color = new Vector4(0.4f, 1, 0.4f, 0),
-                Type = MaterialType.Mirror
-            });
-
-            this.materials.Add(new Material()
-            {
-                Color = new Vector4(1, 1, 0.9f, 0),
-                Type = MaterialType.Dielectric,
-                Index = 1.5f
-            });
-
-            this.materials.Add(new Material()
-            {
-                Color = new Vector4(12, 3, 3, 1),
-                Type = MaterialType.Emissive,
-                Index = 1.5f
-            });
-
-            this.materials.Add(new Material()
-            {
-                Color = new Vector4(3, 12, 3, 1),
-                Type = MaterialType.Emissive,
-                Index = 1.5f
-            });
-
-            this.materials.Add(new Material()
-            {
-                Color = new Vector4(3, 3, 12, 1),
-                Type = MaterialType.Emissive,
-                Index = 1.5f
-            });
-
-            this.spheres = new Buffer<Sphere>(2);
-
             this.spheres.Add(new Sphere()
             {
                 CenterRadius = new Vector4(0, -1000, 0, 999.9f),
                 MaterialIndex = 0
             });
 
-            this.spheres.Add(new Sphere()
-            {
-                CenterRadius = new Vector4(-1, 0.5f, 0, 0.5f),
-                MaterialIndex = 1
-            });
-
-            this.spheres.Add(new Sphere()
-            {
-                CenterRadius = new Vector4(0, 0.5f, 0, 0.5f),
-                MaterialIndex = 3
-            });
-
-            this.spheres.Add(new Sphere()
-            {
-                CenterRadius = new Vector4(1, 0.5f, 0, 0.5f),
-                MaterialIndex = 2
-            });
-
-            this.spheres.Add(new Sphere()
-            {
-                CenterRadius = new Vector4(-2, 4, 0, 1),
-                MaterialIndex = 4
-            });
-
-            this.spheres.Add(new Sphere()
-            {
-                CenterRadius = new Vector4(0, 4, 0, 1),
-                MaterialIndex = 5
-            });
-
-            this.spheres.Add(new Sphere()
-            {
-                CenterRadius = new Vector4(2, 4, 0, 1),
-                MaterialIndex = 6
-            });
-
+            this.materials.AddRange(RandomMaterials(60, rng));
+            this.spheres.AddRange(RandomSpheres(59, rng));
 
             this.materials.CopyToDevice();
             this.spheres.CopyToDevice();
 
-            this.compute.SetUniform("sky_color", Vector4.Zero);
+            this.compute.SetUniform("sky_color", SkyColor);
             this.compute.SetUniform("sphere_count", this.spheres.Count);
 
             this.screen = new Image(1, 1);
