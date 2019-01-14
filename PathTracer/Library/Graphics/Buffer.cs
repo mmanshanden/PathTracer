@@ -1,18 +1,18 @@
 ﻿using OpenTK.Graphics.OpenGL4;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
 namespace PathTracer.Library.Graphics
 {
-    class Buffer<T> : BindableResource, IEnumerable<T>
+    class Buffer<T> : BindableResource
         where T : struct
     {
         private readonly int binding;
-        private T[] data;
-        private int count;
         private readonly int stride;
+
+        private T[] data;
+        private int count, allocated;
 
         public int Count => this.count;
 
@@ -34,49 +34,38 @@ namespace PathTracer.Library.Graphics
             GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, this.binding, this.Handle);
         }
 
-        protected override void BindGraphicsResource()
-        {
-            GL.BindBuffer(BufferTarget.ShaderStorageBuffer, this.Handle);
-        }
-
-        protected override void FreeGraphicsResource()
-        {
-            GL.DeleteBuffer(this.Handle);
-        }
-
         public void CopyToDevice()
         {
             this.Bind();
 
-            GL.BufferData(
-                BufferTarget.ShaderStorageBuffer,
-                this.stride * this.count,
-                this.data,
-                BufferUsageHint.StaticRead);
+            if (this.count == this.allocated)
+            {
+                GL.BufferSubData(
+                    BufferTarget.ShaderStorageBuffer,
+                    IntPtr.Zero,
+                    this.stride * this.count,
+                    this.data);
+            }
+            else
+            {
+                GL.BufferData(
+                    BufferTarget.ShaderStorageBuffer,
+                    this.stride * this.count,
+                    this.data,
+                    BufferUsageHint.StaticRead);
+
+                this.allocated = this.count;
+            }
         }
 
         public int IndexOf(T item)
         {
-            for (int i = 0; i < this.count; i++)
-            {
-                if (this.data[i].Equals(item))
-                {
-                    return i;
-                }
-            }
-
-            return -1;
+            return Array.IndexOf(this.data, item, 0, this.count);
         }
 
         public void Add(T item)
         {
-            if (this.count == this.data.Length)
-            {
-                T[] copy = new T[this.count * 2];
-                Array.Copy(this.data, copy, this.count);
-                this.data = copy;
-            }
-
+            this.EnsureCapacity(this.count + 1);
             this.data[this.count++] = item;
         }
 
@@ -103,41 +92,61 @@ namespace PathTracer.Library.Graphics
                 return false;
             }
 
-            for (int i = index; i < this.count - 1; i++)
-            {
-                this.data[i] = this.data[i + 1];
-            }
-
-            this.count--;
+            this.RemoveAt(index);
             return true;
         }
 
         public void RemoveAt(int index)
         {
-            if (index < 0 || index > this.count)
-            {
-                throw new ArgumentOutOfRangeException();
-            }
-
-            for (int i = index; i < this.count - 1; i++)
-            {
-                this.data[i] = this.data[i + 1];
-            }
-
             this.count--;
+
+            Array.Copy(this.data, index + 1, this.data, index, this.count - index);
         }
 
-        public IEnumerator<T> GetEnumerator()
+        public void Insert(int index, T item)
         {
-            for (int i = 0; i < this.count; i++)
+            this.EnsureCapacity(this.count + 1);
+
+            if (index < this.count)
             {
-                yield return this.data[i];
+                Array.Copy(this.data, index, this.data, index + 1, this.count - index);
             }
+
+            this.data[index] = item;
+            this.count++;
         }
 
-        IEnumerator IEnumerable.GetEnumerator()
+        public bool Contains(T item)
         {
-            return this.GetEnumerator();
+            return this.IndexOf(item) != -1;
+        }
+
+        protected override void BindGraphicsResource()
+        {
+            GL.BindBuffer(BufferTarget.ShaderStorageBuffer, this.Handle);
+        }
+
+        protected override void FreeGraphicsResource()
+        {
+            GL.DeleteBuffer(this.Handle);
+        }
+
+        private void EnsureCapacity(int min)
+        {
+            if (this.data.Length < min)
+            {
+                int capacity = this.count * 2;
+
+                if (capacity < min)
+                {
+                    capacity = min;
+                }
+
+                T[] newdata = new T[capacity];
+                Array.Copy(this.data, newdata, this.count);
+
+                this.data = newdata;
+            }
         }
     }
 }
