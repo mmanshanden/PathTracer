@@ -64,6 +64,8 @@ uniform uint   frame;
 uniform uint   samples;
 uniform Screen screen;
 uniform Camera camera;
+uniform vec4   sky_color;
+uniform int    sphere_count;
 
 void xor_shift(inout uint seed)
 {
@@ -169,7 +171,7 @@ Hit intersect_scene(Ray ray)
     hit.distance = FLT_MAX;
     hit.material = -1;
 
-    for (int i = 0; i < 60; i++)
+    for (int i = 0; i < sphere_count; i++)
     {        
         // THIS DOES NOT WORK (FOR SOME REASON):
         // ray_sphere_intersection(ray, spheres[i], hit);
@@ -210,9 +212,19 @@ vec3 diffuse_reflection(const vec3 normal, inout uint seed)
     return refl;
 }
 
+vec4 brdf(const Material mat)
+{
+    return mat.color * INVPI;
+}
+
+float pdf()
+{
+    return 1.0 / (2.0 * PI);
+}
+
 vec4 Sample(Ray ray, inout uint seed)
 {
-    vec4 color = vec4(1);
+    vec4 throughput = vec4(1);
 
     for (int i = 0; i < 10; i++)
     {
@@ -220,15 +232,17 @@ vec4 Sample(Ray ray, inout uint seed)
 
         if (hit.material < 0)
         {
-            return color * vec4(142.0 / 255.0, 178.0 / 255.0, 237.0 / 255.0, 1);
+            return throughput * sky_color;
         }
 
         const Material mat = materials[hit.material];
 
         if (mat.type == MATERIAL_EMISSIVE)
         {
-            return color * mat.color;
+            return throughput * mat.color;
         }
+
+        vec3 new_dir;
 
         if (mat.type == MATERIAL_DIELECTRIC)
         {
@@ -242,50 +256,44 @@ vec4 Sample(Ray ray, inout uint seed)
 
                 hit.normal = hit.normal * -1;
 
-                color.x = exp(-mat.color.x * hit.distance);
-                color.y = exp(-mat.color.y * hit.distance);
-                color.z = exp(-mat.color.z * hit.distance);
+                // throughput.x = throughput.x * exp(-mat.color.x * hit.distance);
+                // throughput.y = throughput.y * exp(-mat.color.y * hit.distance);
+                // throughput.z = throughput.z * exp(-mat.color.z * hit.distance);
             }
 
+            const float r = random_float(seed);
             const float s = schlick(ray.direction, hit.normal, n1, n2);
 
-            const vec3 r = random_float(seed) < s ? reflect(ray.direction, hit.normal) 
-                                                  : refract(ray.direction, hit.normal, n1 / n2);
-
-            color = color * mat.color;
-            
-            ray.origin = hit.position + r * EPSILON;
-            ray.direction = r;
-            ray.reciprocal = 1.0 / r;   
-
-            continue;
+            if (r < s)
+            {
+                new_dir    = reflect(ray.direction, hit.normal);
+                throughput = throughput * mat.color;
+            }
+            else
+            {
+                new_dir    = refract(ray.direction, hit.normal, n1 / n2); 
+                throughput = throughput * mat.color;
+            }
         }
 
         if (mat.type == MATERIAL_MIRROR)
         {
-            vec3 r = reflect(ray.direction, hit.normal);
-            color = color * mat.color;
-            
-            ray.origin = hit.position + r * EPSILON;
-            ray.direction = r;
-            ray.reciprocal = 1.0 / r;
-
-            continue;
+            new_dir    = reflect(ray.direction, hit.normal);
+            throughput = throughput * mat.color;
         }
 
-        else 
+        if (mat.type == MATERIAL_DIFFUSE)
         {
-            vec3 r = diffuse_reflection(hit.normal, seed);
-            vec4 brdf = mat.color;
-            color = brdf * color * dot(hit.normal, r);
-
-            ray.origin     = hit.position + r * EPSILON;
-            ray.direction  = r;
-            ray.reciprocal = 1.0 / r;
+            new_dir    = diffuse_reflection(hit.normal, seed);
+            throughput = brdf(mat) * throughput * dot(hit.normal, new_dir) / pdf();
         }
+
+        ray.origin     = hit.position + new_dir * EPSILON;
+        ray.direction  = new_dir;
+        ray.reciprocal = 1.0 / new_dir;
     }
 
-    return color;
+    return throughput;
 }
 
 void main() 

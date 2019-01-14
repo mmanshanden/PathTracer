@@ -12,6 +12,8 @@ namespace PathTracer
         const float MOVESPEED = 4.5f;
         const float TURNSPEED = 1.0f;
 
+        private readonly static Vector4 SkyColor = new Vector4(142.0f / 255.0f, 178.0f / 255.0f, 237.0f / 255.0f, 1);
+
         private int width, height;
 
         private ShaderProgram quad;
@@ -47,6 +49,11 @@ namespace PathTracer
                 if (!emissive)
                 {
                     type = rng.Next(5);
+
+                    while (type == (int)MaterialType.Emissive)
+                    {
+                        type = rng.Next();
+                    }
                 }
 
                 yield return new Material()
@@ -87,26 +94,105 @@ namespace PathTracer
             Random rng = new Random();
 
             this.materials = new Buffer<Material>(1);
+
             this.materials.Add(new Material()
             {
-                Color = new Vector4(1, 1, 1, 1),
+                Color = new Vector4(0.8f, 0.8f, 0.8f, 0.0f),
                 Type = MaterialType.Diffuse
             });
 
+            this.materials.Add(new Material()
+            {
+                Color = new Vector4(1, 0.4f, 0.4f, 0),
+                Type = MaterialType.Mirror
+            });
+
+            this.materials.Add(new Material()
+            {
+                Color = new Vector4(0.4f, 1, 0.4f, 0),
+                Type = MaterialType.Mirror
+            });
+
+            this.materials.Add(new Material()
+            {
+                Color = new Vector4(1, 1, 0.9f, 0),
+                Type = MaterialType.Dielectric,
+                Index = 1.5f
+            });
+
+            this.materials.Add(new Material()
+            {
+                Color = new Vector4(12, 3, 3, 1),
+                Type = MaterialType.Emissive,
+                Index = 1.5f
+            });
+
+            this.materials.Add(new Material()
+            {
+                Color = new Vector4(3, 12, 3, 1),
+                Type = MaterialType.Emissive,
+                Index = 1.5f
+            });
+
+            this.materials.Add(new Material()
+            {
+                Color = new Vector4(3, 3, 12, 1),
+                Type = MaterialType.Emissive,
+                Index = 1.5f
+            });
+
             this.spheres = new Buffer<Sphere>(2);
+
             this.spheres.Add(new Sphere()
             {
                 CenterRadius = new Vector4(0, -1000, 0, 999.9f),
                 MaterialIndex = 0
             });
-            
-            this.materials.AddRange(RandomMaterials(31, rng));
-            this.spheres.AddRange(RandomSpheres(20, rng));
-            
+
+            this.spheres.Add(new Sphere()
+            {
+                CenterRadius = new Vector4(-1, 0.5f, 0, 0.5f),
+                MaterialIndex = 1
+            });
+
+            this.spheres.Add(new Sphere()
+            {
+                CenterRadius = new Vector4(0, 0.5f, 0, 0.5f),
+                MaterialIndex = 3
+            });
+
+            this.spheres.Add(new Sphere()
+            {
+                CenterRadius = new Vector4(1, 0.5f, 0, 0.5f),
+                MaterialIndex = 2
+            });
+
+            this.spheres.Add(new Sphere()
+            {
+                CenterRadius = new Vector4(-2, 4, 0, 1),
+                MaterialIndex = 4
+            });
+
+            this.spheres.Add(new Sphere()
+            {
+                CenterRadius = new Vector4(0, 4, 0, 1),
+                MaterialIndex = 5
+            });
+
+            this.spheres.Add(new Sphere()
+            {
+                CenterRadius = new Vector4(2, 4, 0, 1),
+                MaterialIndex = 6
+            });
+
+
             this.materials.CopyToDevice();
             this.spheres.CopyToDevice();
 
-            this.screen = new Image(0, 0);
+            this.compute.SetUniform("sky_color", Vector4.Zero);
+            this.compute.SetUniform("sphere_count", this.spheres.Count);
+
+            this.screen = new Image(1, 1);
             this.camera = new Camera(new Vector3(0, 2, -10), Vector3.Zero);
         }
 
