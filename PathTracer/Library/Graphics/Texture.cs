@@ -12,6 +12,11 @@ namespace PathTracer.Library.Graphics
         public Texture(int width, int height, int unit)
             : base(GL.GenTexture(), TextureTarget.Texture2D)
         {
+            if (width < 1 || height < 1)
+            {
+                throw new ArgumentException("Texture must have a non-zero width and height.");
+            }
+
             this.Unit = unit;
             this.Width = width;
             this.Height = height;
