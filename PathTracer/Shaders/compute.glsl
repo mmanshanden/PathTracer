@@ -56,9 +56,24 @@ struct Sphere
     int material;
 };
 
+struct Vertex
+{
+    vec4 position;
+};
+
+struct Triangle
+{
+    int i;
+    int j;
+    int k;
+    int material;
+};
+
 layout(rgba32f, binding=0) uniform image2D screen_buffer;
 layout(std430,  binding=1) buffer          material_buffer { Material materials[]; };
 layout(std430,  binding=2) buffer          sphere_buffer   { Sphere spheres[]; };
+layout(std430,  binding=3) buffer          vertex_buffer   { Vertex vertices[]; };
+layout(std430,  binding=4) buffer          triangle_buffer { Triangle triangles[]; };
 
 uniform uint   frame;
 uniform uint   samples;
@@ -150,6 +165,46 @@ void ray_sphere_intersection(Ray ray, const Sphere sphere, inout Hit hit)
     }
 }
 
+void ray_triangle_intersection(Ray ray, const Triangle triangle, inout Hit hit)
+{
+    Vertex v1 = vertices[triangle.i];
+    Vertex v2 = vertices[triangle.j];
+    Vertex v3 = vertices[triangle.k];
+
+    const vec3 edge1 = v2.position.xyz - v1.position.xyz;
+    const vec3 edge2 = v3.position.xyz - v1.position.xyz;
+    
+    const vec3 h = cross(ray.direction, edge2);
+    const float a = dot(edge1, h);
+    
+    const float f = 1.0 / a;
+    const vec3 s = ray.origin - v1.position.xyz;
+    const float u = f * dot(s, h);
+    
+    if (u < 0.0 || u > 1.0)
+    {
+        return;
+    }
+    
+    const vec3 q = cross(s, edge1);
+    const float v = f * dot(ray.direction, q);
+    
+    if (v < 0.0 || u + v > 1.0)
+    {
+        return;
+    }
+    
+    const float t = f * dot(edge2, q);
+    
+    if (t > 0.0 && t < hit.distance)
+    {
+        hit.distance = t;
+        hit.position = ray.origin + ray.direction * t;
+        hit.normal   = normalize(cross(edge2, edge1));
+        hit.material = triangle.material;
+    }
+}
+
 bool ray_aabb_test(Ray ray, const vec3 minimum, const vec3 maximum)
 {
     const float t1 = (minimum.x - ray.origin.x) * ray.reciprocal.x;
@@ -171,13 +226,19 @@ Hit intersect_scene(Ray ray)
     hit.distance = FLT_MAX;
     hit.material = -1;
 
-    for (int i = 0; i < sphere_count; i++)
+    for (int i = 0; i < 20; i++)
     {        
         // THIS DOES NOT WORK (FOR SOME REASON):
         // ray_sphere_intersection(ray, spheres[i], hit);
 
         Sphere s = Sphere(spheres[i].center_radius, spheres[i].material);
         ray_sphere_intersection(ray, s, hit);
+    }
+
+    for (int i = 0; i < 2; i++)
+    {
+        Triangle t = Triangle(triangles[i].i, triangles[i].j, triangles[i].k, triangles[i].material);
+        ray_triangle_intersection(ray, t, hit);
     }
 
     return hit;

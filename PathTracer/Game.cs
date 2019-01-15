@@ -22,6 +22,9 @@ namespace PathTracer
         private Buffer<Material> materials;
         private Buffer<Sphere> spheres;
 
+        private Buffer<Triangle> triangles;
+        private Buffer<Vertex> vertices;
+
         private Camera camera;
 
         private uint frame, samples;
@@ -42,7 +45,7 @@ namespace PathTracer
                 float b = (float)rng.NextDouble();
 
                 Vector4 color = new Vector4(r, g, b, 1);
-                bool emissive = rng.Next(100) > 90;
+                bool emissive = rng.Next(100) > 85;
 
                 int type = (int)MaterialType.Emissive;
 
@@ -69,10 +72,10 @@ namespace PathTracer
         {
             for (int i = 0; i < count; i++)
             {
-                float x = (float)rng.NextDouble() * 10.0f - 10.0f;
-                float y = (float)rng.NextDouble() * 10.0f + 1.2f;
-                float z = (float)rng.NextDouble() * 20.0f - 10.0f;
-                float r = (float)rng.NextDouble() * 1.0f + 0.2f;
+                float x = (float)rng.NextDouble() * 5.0f - 2.5f;
+                float y = (float)rng.NextDouble() * 5.0f + 1.2f;
+                float z = (float)rng.NextDouble() * 5.0f - 2.5f;
+                float r = (float)rng.NextDouble() * 0.6f + 0.2f;
 
                 yield return new Sphere()
                 {
@@ -91,10 +94,12 @@ namespace PathTracer
             this.compute = new ShaderProgram(
                 ShaderArgument.Load(ShaderType.ComputeShader, "Shaders/compute.glsl"));
 
-            Random rng = new Random(1);
+            Random rng = new Random(7);
 
             this.materials = new Buffer<Material>(1);
             this.spheres = new Buffer<Sphere>(2);
+            this.vertices = new Buffer<Vertex>(3);
+            this.triangles = new Buffer<Triangle>(4);
 
             this.materials.Add(new Material()
             {
@@ -102,23 +107,26 @@ namespace PathTracer
                 Type = MaterialType.Diffuse
             });
 
-            this.spheres.Add(new Sphere()
-            {
-                CenterRadius = new Vector4(0, -1000, 0, 999.9f),
-                MaterialIndex = 0
-            });
+            this.vertices.Add(new Vertex { Position = new Vector4(-10, 00, -10, 0) });
+            this.vertices.Add(new Vertex { Position = new Vector4(10, 00, -10, 0) });
+            this.vertices.Add(new Vertex { Position = new Vector4(10, 00, 10, 0) });
+            this.vertices.Add(new Vertex { Position = new Vector4(-10, 00, 10, 0) });
 
-            this.materials.AddRange(RandomMaterials(60, rng));
-            this.spheres.AddRange(RandomSpheres(59, rng));
+            this.triangles.Add(new Triangle { I = 0, J = 1, K = 2, Material = 0 });
+            this.triangles.Add(new Triangle { I = 2, J = 3, K = 0, Material = 0 });
+            this.materials.AddRange(RandomMaterials(29, rng));
+            this.spheres.AddRange(RandomSpheres(20, rng));
 
             this.materials.CopyToDevice();
+            this.vertices.CopyToDevice();
+            this.triangles.CopyToDevice();
             this.spheres.CopyToDevice();
 
             this.compute.SetUniform("sky_color", SkyColor);
             this.compute.SetUniform("sphere_count", this.spheres.Count);
 
             this.screen = new Image(1, 1);
-            this.camera = new Camera(new Vector3(0, 2, -10), Vector3.Zero);
+            this.camera = new Camera(new Vector3(0, 8, -10), new Vector3(0, 0, 4));
         }
 
         public void Resize(int width, int height)
@@ -200,7 +208,7 @@ namespace PathTracer
             if (keystate.IsKeyDown(Key.R))
             {
                 this.samples = 0;
-                this.camera = new Camera(new Vector3(0, 2, -10), Vector3.Zero);
+                this.camera = new Camera(new Vector3(0, 8, -10), new Vector3(0, 0, 4));
             }
 
             this.camera.SetUniform("camera", this.compute);
