@@ -70,10 +70,11 @@ struct Triangle
 };
 
 layout(rgba32f, binding=0) uniform image2D screen_buffer;
-layout(std430,  binding=1) buffer          material_buffer { Material materials[]; };
-layout(std430,  binding=2) buffer          sphere_buffer   { Sphere spheres[]; };
-layout(std430,  binding=3) buffer          vertex_buffer   { Vertex vertices[]; };
-layout(std430,  binding=4) buffer          triangle_buffer { Triangle triangles[]; };
+
+layout(std430,  binding=1) buffer material_buffer { Material materials[]; };
+layout(std430,  binding=2) buffer sphere_buffer   { Sphere spheres[]; };
+layout(std430,  binding=3) buffer vertex_buffer   { Vertex vertices[]; };
+layout(std430,  binding=4) buffer triangle_buffer { Triangle triangles[]; };
 
 uniform uint   frame;
 uniform uint   samples;
@@ -235,7 +236,7 @@ Hit intersect_scene(Ray ray)
         ray_sphere_intersection(ray, s, hit);
     }
 
-    for (int i = 0; i < 2; i++)
+    for (int i = 0; i < 4; i++)
     {
         Triangle t = Triangle(triangles[i].i, triangles[i].j, triangles[i].k, triangles[i].material);
         ray_triangle_intersection(ray, t, hit);
@@ -276,7 +277,11 @@ vec4 brdf(const Material mat)
 
 float pdf(const vec3 n, const vec3 r)
 {
-    return dot(n, r) * INVPI;
+    const float d = dot(n, r) * INVPI;
+
+    // protect against division by zero
+    if (d < 0.0000001) return 0.0000001;
+    return d;
 }
 
 vec4 Sample(Ray ray, inout uint seed)

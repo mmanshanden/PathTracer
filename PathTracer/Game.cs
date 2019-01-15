@@ -107,13 +107,25 @@ namespace PathTracer
                 Type = MaterialType.Diffuse
             });
 
-            this.vertices.Add(new Vertex { Position = new Vector4(-10, 00, -10, 0) });
-            this.vertices.Add(new Vertex { Position = new Vector4(10, 00, -10, 0) });
-            this.vertices.Add(new Vertex { Position = new Vector4(10, 00, 10, 0) });
-            this.vertices.Add(new Vertex { Position = new Vector4(-10, 00, 10, 0) });
+            this.materials.Add(new Material()
+            {
+                Color = new Vector4(4f, 4f, 4f, 0.0f),
+                Type = MaterialType.Emissive
+            });
+
+            this.vertices.Add(new Vertex { Position = new Vector4(-10, 00, -100, 0) });
+            this.vertices.Add(new Vertex { Position = new Vector4(100, 00, -100, 0) });
+            this.vertices.Add(new Vertex { Position = new Vector4(100, 00, 100, 0) });
+            this.vertices.Add(new Vertex { Position = new Vector4(-100, 00, 100, 0) });
+            this.vertices.Add(new Vertex { Position = new Vector4(-5, 10, -5, 0) });
+            this.vertices.Add(new Vertex { Position = new Vector4(5, 10, -5, 0) });
+            this.vertices.Add(new Vertex { Position = new Vector4(5, 10, 5, 0) });
+            this.vertices.Add(new Vertex { Position = new Vector4(-5, 10, 5, 0) });
 
             this.triangles.Add(new Triangle { I = 0, J = 1, K = 2, Material = 0 });
             this.triangles.Add(new Triangle { I = 2, J = 3, K = 0, Material = 0 });
+            this.triangles.Add(new Triangle { I = 4, J = 5, K = 6, Material = 1 });
+            this.triangles.Add(new Triangle { I = 6, J = 7, K = 4, Material = 1 });
             this.materials.AddRange(RandomMaterials(29, rng));
             this.spheres.AddRange(RandomSpheres(20, rng));
 
@@ -220,7 +232,8 @@ namespace PathTracer
             this.compute.SetUniform("frame", this.frame++);
             this.compute.SetUniform("samples", this.samples++);
             GL.DispatchCompute(this.width / 8, this.height / 8, 1);
-
+            GL.MemoryBarrier(MemoryBarrierFlags.ShaderStorageBarrierBit);
+            
             this.quad.Use();
             GL.DrawArrays(PrimitiveType.TriangleStrip, 0, 4);
         }
