@@ -73,8 +73,7 @@ layout(rgba32f, binding=0) uniform image2D screen_buffer;
 
 layout(std430,  binding=1) buffer material_buffer { Material materials[]; };
 layout(std430,  binding=2) buffer sphere_buffer   { Sphere spheres[]; };
-layout(std430,  binding=3) buffer vertex_buffer   { Vertex vertices[]; };
-layout(std430,  binding=4) buffer triangle_buffer { Triangle triangles[]; };
+layout(std430,  binding=3) buffer triangle_buffer { Triangle triangles[]; };
 
 uniform uint   frame;
 uniform uint   samples;
@@ -232,7 +231,7 @@ Hit intersect_scene(Ray ray)
         ray_sphere_intersection(ray, s, hit);
     }
 
-    for (int i = 0; i < 5; i++)
+    for (int i = 0; i < 258; i++)
     {
         Triangle t = Triangle(triangles[i].v1, triangles[i].v2, triangles[i].v3, triangles[i].material);
         ray_triangle_intersection(ray, t, hit);

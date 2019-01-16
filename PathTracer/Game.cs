@@ -1,5 +1,6 @@
 ﻿using OpenTK.Graphics.OpenGL4;
 using OpenTK.Input;
+using PathTracer.Library.Geometry;
 using PathTracer.Library.Graphics;
 using System;
 using System.Collections.Generic;
@@ -12,18 +13,17 @@ namespace PathTracer
         const float MOVESPEED = 4.5f;
         const float TURNSPEED = 1.0f;
 
-        private readonly static Vector4 SkyColor = new Vector4(142.0f / 255.0f, 178.0f / 255.0f, 237.0f / 255.0f, 1);
+        private static readonly Vector4 SkyColor = new Vector4(142.0f / 255.0f, 178.0f / 255.0f, 237.0f / 255.0f, 1);
 
         private int width, height;
 
         private ShaderProgram quad;
         private ShaderProgram compute;
         private Image screen;
+
         private Buffer<Material> materials;
         private Buffer<Sphere> spheres;
-
         private Buffer<Triangle> triangles;
-        private Buffer<Vertex> vertices;
 
         private Camera camera;
 
@@ -33,8 +33,8 @@ namespace PathTracer
 
         public Game()
         {
-        }
 
+        }
 
         private static IEnumerable<Material> RandomMaterials(int count, Random rng)
         {
@@ -98,8 +98,7 @@ namespace PathTracer
 
             this.materials = new Buffer<Material>(1);
             this.spheres = new Buffer<Sphere>(2);
-            this.vertices = new Buffer<Vertex>(3);
-            this.triangles = new Buffer<Triangle>(4);
+            this.triangles = new Buffer<Triangle>(3);
 
             this.materials.Add(new Material()
             {
@@ -113,22 +112,8 @@ namespace PathTracer
                 Type = MaterialType.Emissive
             });
 
-            triangles.AddRange(new[]
+            this.triangles.AddRange(new[]
             {
-                new Triangle()
-                {
-                    Material = 0,
-                    V1 = new Vertex() { Position = new Vector4(-100, 0, -100, 0) },
-                    V2 = new Vertex() { Position = new Vector4( 100, 0, -100, 0) },
-                    V3 = new Vertex() { Position = new Vector4( 100, 0,  100, 0) },
-                },
-                new Triangle()
-                {
-                    Material = 0,
-                    V1 = new Vertex() { Position = new Vector4( 100, 0,  100, 0) },
-                    V2 = new Vertex() { Position = new Vector4(-100, 0,  100, 0) },
-                    V3 = new Vertex() { Position = new Vector4(-100, 0, -100, 0) }
-                },
                 new Triangle()
                 {
                     Material = 1,
@@ -145,11 +130,29 @@ namespace PathTracer
                 },
             });
 
+            Mesh cube = Mesh.LoadFromFile("Assets/Mesh/torus.obj");
+
+            foreach (Group g in cube.Groups)
+            {
+                foreach (Face f in g.Faces)
+                {
+                    foreach (var t in f.Triangulate)
+                    {
+                        this.triangles.Add(new Triangle()
+                        {
+                            Material = 0,
+                            V1 = new Vertex() { Position = new Vector4(t.Item1.Position, 0) },
+                            V2 = new Vertex() { Position = new Vector4(t.Item2.Position, 0) },
+                            V3 = new Vertex() { Position = new Vector4(t.Item3.Position, 0) }
+                        });
+                    }
+                }
+            }
+
             this.materials.AddRange(RandomMaterials(29, rng));
             this.spheres.AddRange(RandomSpheres(20, rng));
 
             this.materials.CopyToDevice();
-            this.vertices.CopyToDevice();
             this.triangles.CopyToDevice();
             this.spheres.CopyToDevice();
 
@@ -252,7 +255,7 @@ namespace PathTracer
             this.compute.SetUniform("samples", this.samples++);
             GL.DispatchCompute(this.width / 8, this.height / 8, 1);
             GL.MemoryBarrier(MemoryBarrierFlags.ShaderStorageBarrierBit);
-            
+
             this.quad.Use();
             GL.DrawArrays(PrimitiveType.TriangleStrip, 0, 4);
         }

@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System;
+using System.Numerics;
 
 namespace PathTracer.Library.Extensions
 {
@@ -17,6 +18,16 @@ namespace PathTracer.Library.Extensions
         public static Vector4 Normalized(this Vector4 vector)
         {
             return Vector4.Normalize(vector);
+        }
+
+        public static float MinVal(this Vector3 vector)
+        {
+            return MathF.Min(MathF.Min(vector.X, vector.Y), vector.Z);
+        }
+
+        public static float MaxVal(this Vector3 vector)
+        {
+            return MathF.Max(MathF.Max(vector.X, vector.Y), vector.Z);
         }
     }
 }
