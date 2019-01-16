@@ -1,7 +1,7 @@
 ﻿#version 430
 #define FLT_MAX 3.402823466e+38
 #define FLT_MIN 1.175494351e-38
-#define EPSILON 0.001
+#define EPSILON 0.00001
 #define PI      3.141592653589793238462643383279502
 #define INVPI   0.318309886183790671537767526745028
 
@@ -63,9 +63,9 @@ struct Vertex
 
 struct Triangle
 {
-    int i;
-    int j;
-    int k;
+    Vertex v1;
+    Vertex v2;
+    Vertex v3;
     int material;
 };
 
@@ -168,18 +168,14 @@ void ray_sphere_intersection(Ray ray, const Sphere sphere, inout Hit hit)
 
 void ray_triangle_intersection(Ray ray, const Triangle triangle, inout Hit hit)
 {
-    Vertex v1 = vertices[triangle.i];
-    Vertex v2 = vertices[triangle.j];
-    Vertex v3 = vertices[triangle.k];
-
-    const vec3 edge1 = v2.position.xyz - v1.position.xyz;
-    const vec3 edge2 = v3.position.xyz - v1.position.xyz;
+    const vec3 edge1 = triangle.v2.position.xyz - triangle.v1.position.xyz;
+    const vec3 edge2 = triangle.v3.position.xyz - triangle.v1.position.xyz;
     
     const vec3 h = cross(ray.direction, edge2);
     const float a = dot(edge1, h);
     
     const float f = 1.0 / a;
-    const vec3 s = ray.origin - v1.position.xyz;
+    const vec3 s = ray.origin - triangle.v1.position.xyz;
     const float u = f * dot(s, h);
     
     if (u < 0.0 || u > 1.0)
@@ -236,9 +232,9 @@ Hit intersect_scene(Ray ray)
         ray_sphere_intersection(ray, s, hit);
     }
 
-    for (int i = 0; i < 4; i++)
+    for (int i = 0; i < 5; i++)
     {
-        Triangle t = Triangle(triangles[i].i, triangles[i].j, triangles[i].k, triangles[i].material);
+        Triangle t = Triangle(triangles[i].v1, triangles[i].v2, triangles[i].v3, triangles[i].material);
         ray_triangle_intersection(ray, t, hit);
     }
 

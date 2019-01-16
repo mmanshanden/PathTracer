@@ -113,19 +113,38 @@ namespace PathTracer
                 Type = MaterialType.Emissive
             });
 
-            this.vertices.Add(new Vertex { Position = new Vector4(-10, 00, -100, 0) });
-            this.vertices.Add(new Vertex { Position = new Vector4(100, 00, -100, 0) });
-            this.vertices.Add(new Vertex { Position = new Vector4(100, 00, 100, 0) });
-            this.vertices.Add(new Vertex { Position = new Vector4(-100, 00, 100, 0) });
-            this.vertices.Add(new Vertex { Position = new Vector4(-5, 10, -5, 0) });
-            this.vertices.Add(new Vertex { Position = new Vector4(5, 10, -5, 0) });
-            this.vertices.Add(new Vertex { Position = new Vector4(5, 10, 5, 0) });
-            this.vertices.Add(new Vertex { Position = new Vector4(-5, 10, 5, 0) });
+            triangles.AddRange(new[]
+            {
+                new Triangle()
+                {
+                    Material = 0,
+                    V1 = new Vertex() { Position = new Vector4(-100, 0, -100, 0) },
+                    V2 = new Vertex() { Position = new Vector4( 100, 0, -100, 0) },
+                    V3 = new Vertex() { Position = new Vector4( 100, 0,  100, 0) },
+                },
+                new Triangle()
+                {
+                    Material = 0,
+                    V1 = new Vertex() { Position = new Vector4( 100, 0,  100, 0) },
+                    V2 = new Vertex() { Position = new Vector4(-100, 0,  100, 0) },
+                    V3 = new Vertex() { Position = new Vector4(-100, 0, -100, 0) }
+                },
+                new Triangle()
+                {
+                    Material = 1,
+                    V1 = new Vertex() { Position = new Vector4(-5, 10, -5, 0) },
+                    V2 = new Vertex() { Position = new Vector4( 5, 10, -5, 0) },
+                    V3 = new Vertex() { Position = new Vector4( 5, 10,  5, 0) },
+                },
+                new Triangle()
+                {
+                    Material = 1,
+                    V1 = new Vertex() { Position = new Vector4( 5, 10,  5, 0) },
+                    V2 = new Vertex() { Position = new Vector4(-5, 10,  5, 0) },
+                    V3 = new Vertex() { Position = new Vector4(-5, 10, -5, 0) }
+                },
+            });
 
-            this.triangles.Add(new Triangle { I = 0, J = 1, K = 2, Material = 0 });
-            this.triangles.Add(new Triangle { I = 2, J = 3, K = 0, Material = 0 });
-            this.triangles.Add(new Triangle { I = 4, J = 5, K = 6, Material = 1 });
-            this.triangles.Add(new Triangle { I = 6, J = 7, K = 4, Material = 1 });
             this.materials.AddRange(RandomMaterials(29, rng));
             this.spheres.AddRange(RandomSpheres(20, rng));
 
