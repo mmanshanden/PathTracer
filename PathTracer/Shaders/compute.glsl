@@ -69,11 +69,26 @@ struct Triangle
     int material;
 };
 
+struct BoundingBox
+{
+    vec4 min;
+    vec4 max;
+};
+
+struct Node
+{
+    BoundingBox box;
+    int leftFirst;
+    int count;
+};
+
 layout(rgba32f, binding=0) uniform image2D screen_buffer;
 
 layout(std430,  binding=1) buffer material_buffer { Material materials[]; };
 layout(std430,  binding=2) buffer sphere_buffer   { Sphere spheres[]; };
 layout(std430,  binding=3) buffer triangle_buffer { Triangle triangles[]; };
+layout(std430,  binding=4) buffer node_buffer     { Node nodes[]; };
+layout(std430,  binding=5) buffer index_buffer    { int indices[]; };
 
 uniform uint   frame;
 uniform uint   samples;
@@ -221,6 +236,37 @@ Hit intersect_scene(Ray ray)
     Hit hit;
     hit.distance = FLT_MAX;
     hit.material = -1;
+
+    Node stack[10];
+    int stack_pos = 0;
+
+    stack[0] = nodes[0];
+
+    while (false && stack_pos >= 0)
+    {
+        Node n = stack[stack_pos];
+        stack_pos--;
+
+        if (ray_aabb_test(ray, n.box.min.xyz, n.box.max.xyz))
+        {
+            if (n.count > 0)
+            {
+                for (int i = 0; i < n.leftFirst + n.count; i++)
+                {
+                    int j = indices[i];
+                    Triangle t = Triangle(triangles[j].v1, triangles[j].v2, triangles[j].v3, triangles[j].material);
+                    ray_triangle_intersection(ray, t, hit);
+                }
+            }
+            else
+            {
+                stack_pos++;
+                stack[stack_pos] = nodes[n.leftFirst];
+                stack_pos++;
+                stack[stack_pos] = nodes[n.leftFirst + 1];
+            }
+        }
+    }
 
     for (int i = 0; i < 20; i++)
     {        

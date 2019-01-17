@@ -1,11 +1,12 @@
 ﻿using OpenTK.Graphics.OpenGL4;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
 namespace PathTracer.Library.Graphics
 {
-    class Buffer<T> : BindableResource
+    class Buffer<T> : BindableResource, IEnumerable<T>
         where T : struct
     {
         private readonly int binding;
@@ -147,6 +148,19 @@ namespace PathTracer.Library.Graphics
 
                 this.data = newdata;
             }
+        }
+
+        public IEnumerator<T> GetEnumerator()
+        {
+            for (int i = 0; i < this.count; i++)
+            {
+                yield return this.data[i];
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return this.GetEnumerator();
         }
     }
 }

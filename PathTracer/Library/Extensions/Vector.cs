@@ -20,14 +20,34 @@ namespace PathTracer.Library.Extensions
             return Vector4.Normalize(vector);
         }
 
-        public static float MinVal(this Vector3 vector)
+        public static float MinValue(this Vector3 vector)
         {
             return MathF.Min(MathF.Min(vector.X, vector.Y), vector.Z);
         }
 
-        public static float MaxVal(this Vector3 vector)
+        public static float MaxValue(this Vector3 vector)
         {
             return MathF.Max(MathF.Max(vector.X, vector.Y), vector.Z);
+        }
+
+        public static float MinValue3(this Vector4 vector)
+        {
+            return MathF.Min(MathF.Min(vector.X, vector.Y), vector.Z);
+        }
+
+        public static float MaxValue3(this Vector4 vector)
+        {
+            return MathF.Max(MathF.Max(vector.X, vector.Y), vector.Z);
+        }
+
+        public static float MinValue(this Vector4 vector)
+        {
+            return MathF.Min(MathF.Min(vector.X, vector.Y), MathF.Min(vector.Z, vector.W));
+        }
+
+        public static float MaxValue(this Vector4 vector)
+        {
+            return MathF.Max(MathF.Max(vector.X, vector.Y), MathF.Max(vector.Z, vector.W));
         }
     }
 }
