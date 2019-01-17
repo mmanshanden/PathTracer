@@ -10,6 +10,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Assets\Mesh\floor.obj">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Assets\Mesh\torus.obj">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

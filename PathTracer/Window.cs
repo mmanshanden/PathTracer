@@ -2,6 +2,7 @@
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Input;
 using System;
+using System.ComponentModel;
 
 namespace PathTracer
 {
@@ -28,6 +29,13 @@ namespace PathTracer
             this.Title = string.Empty;
             this.VSync = VSyncMode.Off;
             this.game.Initialize();
+        }
+
+        protected override void OnClosing(CancelEventArgs e)
+        {
+            base.OnClosing(e);
+
+            this.game.Dispose();
         }
 
         protected override void OnResize(EventArgs e)
@@ -61,7 +69,7 @@ namespace PathTracer
         protected override void OnUpdateFrame(FrameEventArgs e)
         {
             base.OnUpdateFrame(e);
-            
+
             this.game.Update((float)e.Time, this.keystate);
         }
 
@@ -82,7 +90,7 @@ namespace PathTracer
             this.time += e.Time;
             this.frames += 1;
 
-            this.Title = fps;
+            this.Title = this.fps;
         }
     }
 }

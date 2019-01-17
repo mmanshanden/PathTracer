@@ -19,7 +19,7 @@ namespace PathTracer.Library.Geometry
             }
         }
 
-        public IEnumerable<(Vertex, Vertex, Vertex)> Triangulate
+        public IEnumerable<Vertex[]> Triangulate
         {
             get
             {
@@ -29,7 +29,7 @@ namespace PathTracer.Library.Geometry
                 for (int i = 2; i < this.frames.Length; i++)
                 {
                     Vertex c = this.BuildVertex(this.frames[i]);
-                    yield return (c, b, a);
+                    yield return new[] { c, b, a };
                     b = c;
                 }
             }

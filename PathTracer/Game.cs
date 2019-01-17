@@ -1,6 +1,5 @@
 ﻿using OpenTK.Graphics.OpenGL4;
 using OpenTK.Input;
-using PathTracer.Library.Geometry;
 using PathTracer.Library.Graphics;
 using System;
 using System.Collections.Generic;
@@ -15,18 +14,15 @@ namespace PathTracer
 
         private static readonly Vector4 SkyColor = new Vector4(142.0f / 255.0f, 178.0f / 255.0f, 237.0f / 255.0f, 1);
 
-        private int width, height;
-
         private ShaderProgram quad;
         private ShaderProgram compute;
         private Image screen;
 
-        private Buffer<Material> materials;
-        private Buffer<Sphere> spheres;
-        private Buffer<Triangle> triangles;
-
         private Camera camera;
+        private Scene scene;
+        private Buffer<Sphere> spheres;
 
+        private int width, height;
         private uint frame, samples;
 
         public uint Samples => this.samples;
@@ -94,70 +90,20 @@ namespace PathTracer
             this.compute = new ShaderProgram(
                 ShaderArgument.Load(ShaderType.ComputeShader, "Shaders/compute.glsl"));
 
-            Random rng = new Random(7);
+            Random rng = new Random(4);
 
-            this.materials = new Buffer<Material>(1);
+            this.scene = new Scene();
+            this.scene.AddMaterial(RandomMaterials(30, rng));
+            this.scene.LoadMesh("Assets/Mesh/torus.obj");
+            this.scene.LoadMesh("Assets/Mesh/floor.obj");
+
             this.spheres = new Buffer<Sphere>(2);
-            this.triangles = new Buffer<Triangle>(3);
+            this.spheres.AddRange(RandomSpheres(10, rng));
 
-            this.materials.Add(new Material()
-            {
-                Color = new Vector4(0.8f, 0.8f, 0.8f, 0.0f),
-                Type = MaterialType.Diffuse
-            });
-
-            this.materials.Add(new Material()
-            {
-                Color = new Vector4(4f, 4f, 4f, 0.0f),
-                Type = MaterialType.Emissive
-            });
-
-            this.triangles.AddRange(new[]
-            {
-                new Triangle()
-                {
-                    Material = 1,
-                    V1 = new Vertex() { Position = new Vector4(-5, 10, -5, 0) },
-                    V2 = new Vertex() { Position = new Vector4( 5, 10, -5, 0) },
-                    V3 = new Vertex() { Position = new Vector4( 5, 10,  5, 0) },
-                },
-                new Triangle()
-                {
-                    Material = 1,
-                    V1 = new Vertex() { Position = new Vector4( 5, 10,  5, 0) },
-                    V2 = new Vertex() { Position = new Vector4(-5, 10,  5, 0) },
-                    V3 = new Vertex() { Position = new Vector4(-5, 10, -5, 0) }
-                },
-            });
-
-            Mesh cube = Mesh.LoadFromFile("Assets/Mesh/torus.obj");
-
-            foreach (Group g in cube.Groups)
-            {
-                foreach (Face f in g.Faces)
-                {
-                    foreach (var t in f.Triangulate)
-                    {
-                        this.triangles.Add(new Triangle()
-                        {
-                            Material = 0,
-                            V1 = new Vertex() { Position = new Vector4(t.Item1.Position, 0) },
-                            V2 = new Vertex() { Position = new Vector4(t.Item2.Position, 0) },
-                            V3 = new Vertex() { Position = new Vector4(t.Item3.Position, 0) }
-                        });
-                    }
-                }
-            }
-
-            this.materials.AddRange(RandomMaterials(29, rng));
-            this.spheres.AddRange(RandomSpheres(20, rng));
-
-            this.materials.CopyToDevice();
-            this.triangles.CopyToDevice();
+            this.scene.CopyToDevice();
             this.spheres.CopyToDevice();
 
             this.compute.SetUniform("sky_color", SkyColor);
-            this.compute.SetUniform("sphere_count", this.spheres.Count);
 
             this.screen = new Image(1, 1);
             this.camera = new Camera(new Vector3(0, 8, -10), new Vector3(0, 0, 4));
@@ -265,6 +211,7 @@ namespace PathTracer
             this.quad.Dispose();
             this.compute.Dispose();
             this.screen.Dispose();
+            this.scene.Dispose();
         }
     }
 }
