@@ -242,7 +242,7 @@ Hit intersect_scene(Ray ray)
 
     stack[0] = nodes[0];
 
-    while (false && stack_pos >= 0)
+    while (stack_pos >= 0)
     {
         Node n = stack[stack_pos];
         stack_pos--;
@@ -251,7 +251,7 @@ Hit intersect_scene(Ray ray)
         {
             if (n.count > 0)
             {
-                for (int i = 0; i < n.leftFirst + n.count; i++)
+                for (int i = n.leftFirst; i < n.leftFirst + n.count; i++)
                 {
                     int j = indices[i];
                     Triangle t = Triangle(triangles[j].v1, triangles[j].v2, triangles[j].v3, triangles[j].material);
@@ -275,12 +275,6 @@ Hit intersect_scene(Ray ray)
 
         Sphere s = Sphere(spheres[i].center_radius, spheres[i].material);
         ray_sphere_intersection(ray, s, hit);
-    }
-
-    for (int i = 0; i < 258; i++)
-    {
-        Triangle t = Triangle(triangles[i].v1, triangles[i].v2, triangles[i].v3, triangles[i].material);
-        ray_triangle_intersection(ray, t, hit);
     }
 
     return hit;
