@@ -29,7 +29,7 @@ namespace PathTracer.Library.Graphics
             this.binding = binding;
             this.stride = Marshal.SizeOf<T>();
 
-            this.data = new T[1];
+            this.data = new T[4];
             this.count = 0;
 
             GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, this.binding, this.Handle);
@@ -37,7 +37,17 @@ namespace PathTracer.Library.Graphics
 
         public void CopyToDevice()
         {
+            if (this.count == 0)
+            {
+                return;
+            }
+
             this.Bind();
+
+            int size = this.stride * this.count / 1024;
+            string type = this.data[0].GetType().Name;
+
+            Console.WriteLine($"Transfering {size}K\tfrom Buffer<{type}>\t(binding={this.binding}, stride={this.stride}, count={this.count})");
 
             if (this.count == this.allocated)
             {
@@ -57,6 +67,11 @@ namespace PathTracer.Library.Graphics
 
                 this.allocated = this.count;
             }
+        }
+
+        public ref T GetReference(int index)
+        {
+            return ref this.data[index];
         }
 
         public int IndexOf(T item)
@@ -81,7 +96,6 @@ namespace PathTracer.Library.Graphics
         public void Clear()
         {
             this.count = 0;
-            this.data = new T[1];
         }
 
         public bool Remove(T item)
@@ -120,6 +134,11 @@ namespace PathTracer.Library.Graphics
         public bool Contains(T item)
         {
             return this.IndexOf(item) != -1;
+        }
+
+        public void Sort(int index, int count, IComparer<T> comparer)
+        {
+            Array.Sort(this.data, index, count, comparer);
         }
 
         protected override void BindGraphicsResource()

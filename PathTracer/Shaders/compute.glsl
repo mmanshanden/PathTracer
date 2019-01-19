@@ -90,7 +90,6 @@ struct Node
 layout(rgba32f, binding=0) uniform image2D screen_buffer;
 
 layout(std430,  binding=1) buffer material_buffer { Material materials[]; };
-layout(std430,  binding=2) buffer sphere_buffer   { Sphere spheres[]; };
 layout(std430,  binding=3) buffer triangle_buffer { Triangle triangles[]; };
 layout(std430,  binding=4) buffer node_buffer     { Node nodes[]; };
 
@@ -137,63 +136,16 @@ Ray generate_ray(const ivec2 screen_pos, inout uint seed)
     return r;
 }
 
-void ray_sphere_intersection(Ray ray, const Sphere sphere, inout Hit hit)
+void ray_triangle_intersection(Ray ray, const int index, inout Hit hit)
 {
-    const vec3 v = ray.origin - sphere.center_radius.xyz;
-
-    const float a = dot(ray.direction, ray.direction);
-    const float b = dot(2 * ray.direction, v);
-    const float c = dot(v, v) - sphere.center_radius.w * sphere.center_radius.w;
-
-    const float d = b * b - 4 * a * c;
-
-    if (d < 0)
-    {
-        return;
-    }
-
-    const float sqrtd = sqrt(d);
-    const float rcp = 1.0 / (2 * a);
-
-    float t0 = (-b + sqrtd) * rcp;
-    float t1 = (-b - sqrtd) * rcp;
-
-    if (t0 > t1)
-    {
-        const float tmp = t1;
-        t1 = t0;
-        t0 = tmp;
-    }
-
-    if (t0 < 0)
-    {
-        t0 = t1;
-
-        if (t0 < 0)
-        {
-            return;
-        }
-    }
-
-    if (t0 < hit.distance)
-    {
-        hit.distance = t0;
-        hit.position = ray.origin + ray.direction * t0;
-        hit.normal   = normalize(hit.position - sphere.center_radius.xyz);
-        hit.material = sphere.material;
-    }
-}
-
-void ray_triangle_intersection(Ray ray, const Triangle triangle, inout Hit hit)
-{
-    const vec3 edge1 = triangle.v2.position.xyz - triangle.v1.position.xyz;
-    const vec3 edge2 = triangle.v3.position.xyz - triangle.v1.position.xyz;
+    const vec3 edge1 = triangles[index].v2.position.xyz - triangles[index].v1.position.xyz;
+    const vec3 edge2 = triangles[index].v3.position.xyz - triangles[index].v1.position.xyz;
     
     const vec3 h = cross(ray.direction, edge2);
     const float a = dot(edge1, h);
     
     const float f = 1.0 / a;
-    const vec3 s = ray.origin - triangle.v1.position.xyz;
+    const vec3 s = ray.origin - triangles[index].v1.position.xyz;
     const float u = f * dot(s, h);
     
     if (u < 0.0 || u > 1.0)
@@ -216,7 +168,7 @@ void ray_triangle_intersection(Ray ray, const Triangle triangle, inout Hit hit)
         hit.distance = t;
         hit.position = ray.origin + ray.direction * t;
         hit.normal   = normalize(cross(edge2, edge1));
-        hit.material = triangle.material;
+        hit.material = triangles[index].material;
     }
 }
 
@@ -235,7 +187,7 @@ bool ray_aabb_test(Ray ray, const vec3 minimum, const vec3 maximum, out float tm
     return (tmax > 0 && tmin < tmax);
 }
 
-bool ray_node_bounds_test(Ray ray, int node, out float tmin, out float tmax)
+bool ray_node_bounds_test(Ray ray, const int node, out float tmin, out float tmax)
 {
     const float t1 = (nodes[node].bounds_min_x - ray.origin.x) * ray.reciprocal.x;
     const float t2 = (nodes[node].bounds_max_x - ray.origin.x) * ray.reciprocal.x;
@@ -270,8 +222,7 @@ Hit intersect_scene(Ray ray)
         {
             for (int i = n.leftFirst; i < n.leftFirst + n.count; i++)
             {
-                Triangle t = Triangle(triangles[i].v1, triangles[i].v2, triangles[i].v3, triangles[i].material);
-                ray_triangle_intersection(ray, t, hit);
+                ray_triangle_intersection(ray, i, hit);
             }
         }
         else
@@ -310,15 +261,6 @@ Hit intersect_scene(Ray ray)
             }
         }
         
-    }
-
-    for (int i = 0; i < 20; i++)
-    {        
-        // THIS DOES NOT WORK (FOR SOME REASON):
-        // ray_sphere_intersection(ray, spheres[i], hit);
-
-        Sphere s = Sphere(spheres[i].center_radius, spheres[i].material);
-        ray_sphere_intersection(ray, s, hit);
     }
 
     return hit;
