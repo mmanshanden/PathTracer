@@ -9,7 +9,7 @@ namespace PathTracer
     {
         public int Index;
         public Box Bounds;
-        public Vector4 Centroid;
+        public Vector3 Centroid;
 
     }
 }

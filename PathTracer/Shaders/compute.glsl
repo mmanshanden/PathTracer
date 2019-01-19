@@ -77,7 +77,12 @@ struct BoundingBox
 
 struct Node
 {
-    BoundingBox box;
+    float bounds_min_x;
+    float bounds_min_y;
+    float bounds_min_z;
+    float bounds_max_x;
+    float bounds_max_y;
+    float bounds_max_z;
     int leftFirst;
     int count;
 };
@@ -230,6 +235,21 @@ bool ray_aabb_test(Ray ray, const vec3 minimum, const vec3 maximum, out float tm
     return (tmax > 0 && tmin < tmax);
 }
 
+bool ray_node_bounds_test(Ray ray, int node, out float tmin, out float tmax)
+{
+    const float t1 = (nodes[node].bounds_min_x - ray.origin.x) * ray.reciprocal.x;
+    const float t2 = (nodes[node].bounds_max_x - ray.origin.x) * ray.reciprocal.x;
+    const float t3 = (nodes[node].bounds_min_y - ray.origin.y) * ray.reciprocal.y;
+    const float t4 = (nodes[node].bounds_max_y - ray.origin.y) * ray.reciprocal.y;
+    const float t5 = (nodes[node].bounds_min_z - ray.origin.z) * ray.reciprocal.z;
+    const float t6 = (nodes[node].bounds_max_z - ray.origin.z) * ray.reciprocal.z;
+
+    tmin = max(max(min(t1, t2), min(t3, t4)), min(t5, t6));
+    tmax = min(min(max(t1, t2), max(t3, t4)), max(t5, t6));
+
+    return (tmax > 0 && tmin < tmax);
+}
+
 Hit intersect_scene(Ray ray)
 {
     Hit hit;
@@ -256,13 +276,10 @@ Hit intersect_scene(Ray ray)
         }
         else
         {
-            const BoundingBox left  = nodes[n.leftFirst].box;
-            const BoundingBox right = nodes[n.leftFirst + 1].box;
-
             float tleft, tright, tout;
 
-            const bool l = ray_aabb_test(ray, left.min.xyz, left.max.xyz, tleft, tout);
-            const bool r = ray_aabb_test(ray, right.min.xyz, right.max.xyz, tright, tout);
+            const bool l = ray_node_bounds_test(ray, n.leftFirst, tleft, tout);
+            const bool r = ray_node_bounds_test(ray, n.leftFirst + 1, tright, tout);
 
             if (l && r)
             {

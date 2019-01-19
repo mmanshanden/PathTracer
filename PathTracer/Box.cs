@@ -5,28 +5,28 @@ using System.Runtime.InteropServices;
 
 namespace PathTracer
 {
-    [StructLayout(LayoutKind.Explicit, Size = 32)]
+    [StructLayout(LayoutKind.Explicit, Size = 24)]
     struct Box
     {
-        [FieldOffset(00)] public Vector4 Min;
-        [FieldOffset(16)] public Vector4 Max;
+        [FieldOffset(00)] public Vector3 Min;
+        [FieldOffset(12)] public Vector3 Max;
 
         public static Box Negative = new Box()
         {
-            Max = new Vector4(float.NegativeInfinity),
-            Min = new Vector4(float.PositiveInfinity)
+            Max = new Vector3(float.NegativeInfinity),
+            Min = new Vector3(float.PositiveInfinity)
         };
 
-        public Vector4 Centroid()
+        public Vector3 Centroid()
         {
             return 0.5f * this.Min + 0.5f * this.Max;
         }
 
         public int Domain()
         {
-            Vector4 dim = this.Max - this.Min;
+            Vector3 dim = this.Max - this.Min;
 
-            float l = dim.MaxValue3();
+            float l = dim.MaxValue();
 
             if (l == dim.X)
             {
@@ -44,7 +44,7 @@ namespace PathTracer
 
         public float Area()
         {
-            Vector4 d = this.Max - this.Min;
+            Vector3 d = this.Max - this.Min;
             return 2.0f * (d.X * d.Y + d.X * d.Z + d.Y * d.Z);
         }
 
@@ -52,8 +52,8 @@ namespace PathTracer
         {
             return new Box()
             {
-                Max = Vector4.Max(a.Max, b.Max),
-                Min = Vector4.Min(a.Min, b.Min)
+                Max = Vector3.Max(a.Max, b.Max),
+                Min = Vector3.Min(a.Min, b.Min)
             };
         }
 
@@ -66,8 +66,8 @@ namespace PathTracer
         {
             return new Box()
             {
-                Max = Vector4.Max(Vector4.Max(a.Position, b.Position), c.Position) + new Vector4(0.00001f),
-                Min = Vector4.Min(Vector4.Min(a.Position, b.Position), c.Position) - new Vector4(0.00001f),
+                Max = Vector4.Max(Vector4.Max(a.Position, b.Position), c.Position).ToVector3() + new Vector3(0.00001f),
+                Min = Vector4.Min(Vector4.Min(a.Position, b.Position), c.Position).ToVector3() - new Vector3(0.00001f),
             };
         }
     }

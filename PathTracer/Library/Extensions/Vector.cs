@@ -49,5 +49,10 @@ namespace PathTracer.Library.Extensions
         {
             return MathF.Max(MathF.Max(vector.X, vector.Y), MathF.Max(vector.Z, vector.W));
         }
+
+        public static Vector3 ToVector3(this Vector4 vector)
+        {
+            return new Vector3(vector.X, vector.Y, vector.Z);
+        }
     }
 }
