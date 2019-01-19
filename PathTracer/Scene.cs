@@ -132,7 +132,7 @@ namespace PathTracer
             {
                 ref Node node = ref nodes[stack.Pop()];
 
-                (node.Bounds, _) = this.GetBounds(node.LeftFirst, node.Count);
+                node.Bounds = this.GetBounds(node.LeftFirst, node.Count);
 
                 if (node.Count < 3)
                 {
@@ -155,8 +155,8 @@ namespace PathTracer
                 {
                     int r = node.Count - l;
 
-                    (Box lb, _) = this.GetBounds(node.LeftFirst, l);
-                    (Box rb, _) = this.GetBounds(node.LeftFirst + l, r);
+                    Box lb = this.GetBounds(node.LeftFirst, l);
+                    Box rb = this.GetBounds(node.LeftFirst + l, r);
 
                     float c = lb.Area() * l + rb.Area() * r;
 
@@ -189,23 +189,18 @@ namespace PathTracer
             return nodes;
         }
 
-        private (Box, Box) GetBounds(int from, int count)
+        private Box GetBounds(int from, int count)
         {
             Box bounds = Box.Negative;
-
-            Vector4 min = new Vector4(float.PositiveInfinity);
-            Vector4 max = new Vector4(float.NegativeInfinity);
 
             for (int i = from; i < from + count; i++)
             {
                 int j = this.indices[i];
 
                 bounds = Box.Union(this.primitives[j].Bounds, bounds);
-                min = Vector4.Min(this.primitives[j].Centroid, min);
-                max = Vector4.Max(this.primitives[j].Centroid, max);
             }
 
-            return (bounds, new Box() { Min = min, Max = max });
+            return bounds;
         }
 
         private void Sort(int first, int count, Func<Primitive, float> selector)

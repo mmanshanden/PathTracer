@@ -215,7 +215,7 @@ void ray_triangle_intersection(Ray ray, const Triangle triangle, inout Hit hit)
     }
 }
 
-bool ray_aabb_test(Ray ray, const vec3 minimum, const vec3 maximum)
+bool ray_aabb_test(Ray ray, const vec3 minimum, const vec3 maximum, out float tmin, out float tmax)
 {
     const float t1 = (minimum.x - ray.origin.x) * ray.reciprocal.x;
     const float t2 = (maximum.x - ray.origin.x) * ray.reciprocal.x;
@@ -224,8 +224,8 @@ bool ray_aabb_test(Ray ray, const vec3 minimum, const vec3 maximum)
     const float t5 = (minimum.z - ray.origin.z) * ray.reciprocal.z;
     const float t6 = (maximum.z - ray.origin.z) * ray.reciprocal.z;
 
-    const float tmin = max(max(min(t1, t2), min(t3, t4)), min(t5, t6));
-    const float tmax = min(min(max(t1, t2), max(t3, t4)), max(t5, t6));
+    tmin = max(max(min(t1, t2), min(t3, t4)), min(t5, t6));
+    tmax = min(min(max(t1, t2), max(t3, t4)), max(t5, t6));
 
     return (tmax > 0 && tmin < tmax);
 }
@@ -246,24 +246,53 @@ Hit intersect_scene(Ray ray)
         Node n = stack[stack_pos];
         stack_pos--;
 
-        if (ray_aabb_test(ray, n.box.min.xyz, n.box.max.xyz))
+        if (n.count > 0)
         {
-            if (n.count > 0)
+            for (int i = n.leftFirst; i < n.leftFirst + n.count; i++)
             {
-                for (int i = n.leftFirst; i < n.leftFirst + n.count; i++)
-                {
-                    Triangle t = Triangle(triangles[i].v1, triangles[i].v2, triangles[i].v3, triangles[i].material);
-                    ray_triangle_intersection(ray, t, hit);
-                }
-            }
-            else
-            {
-                stack_pos++;
-                stack[stack_pos] = nodes[n.leftFirst];
-                stack_pos++;
-                stack[stack_pos] = nodes[n.leftFirst + 1];
+                Triangle t = Triangle(triangles[i].v1, triangles[i].v2, triangles[i].v3, triangles[i].material);
+                ray_triangle_intersection(ray, t, hit);
             }
         }
+        else
+        {
+            const BoundingBox left  = nodes[n.leftFirst].box;
+            const BoundingBox right = nodes[n.leftFirst + 1].box;
+
+            float tleft, tright, tout;
+
+            const bool l = ray_aabb_test(ray, left.min.xyz, left.max.xyz, tleft, tout);
+            const bool r = ray_aabb_test(ray, right.min.xyz, right.max.xyz, tright, tout);
+
+            if (l && r)
+            {
+                if (tleft < tright && tleft < hit.distance)
+                {
+                    stack[++stack_pos] = nodes[n.leftFirst];
+                    stack[++stack_pos] = nodes[n.leftFirst + 1];
+                }
+                else if (tright < hit.distance)
+                {
+                    stack[++stack_pos] = nodes[n.leftFirst + 1];
+                    stack[++stack_pos] = nodes[n.leftFirst];
+                }   
+            }
+            else if (l)
+            {
+                if (tleft < hit.distance)
+                {
+                    stack[++stack_pos] = nodes[n.leftFirst];
+                }
+            }
+            else 
+            {
+                if (tright < hit.distance)
+                {
+                    stack[++stack_pos] = nodes[n.leftFirst + 1];
+                }
+            }
+        }
+        
     }
 
     for (int i = 0; i < 20; i++)
