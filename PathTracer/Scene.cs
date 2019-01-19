@@ -11,10 +11,10 @@ namespace PathTracer
         private readonly Buffer<Material> materials;
         private readonly Buffer<Triangle> triangles;
         private readonly Buffer<Node> nodebuffer;
-        private readonly Buffer<int> indexbuffer;
 
         private readonly Dictionary<Material, int> lut;
 
+        private readonly List<Triangle> references;
         private readonly List<Primitive> primitives;
         private readonly List<int> indices;
 
@@ -23,11 +23,11 @@ namespace PathTracer
             this.materials = new Buffer<Material>(1);
             this.triangles = new Buffer<Triangle>(3);
             this.nodebuffer = new Buffer<Node>(4);
-            this.indexbuffer = new Buffer<int>(5);
 
             this.lut = new Dictionary<Material, int>();
 
             this.primitives = new List<Primitive>();
+            this.references = new List<Triangle>();
             this.indices = new List<int>();
         }
 
@@ -69,16 +69,19 @@ namespace PathTracer
         public void CopyToDevice()
         {
             this.materials.CopyToDevice();
-            this.triangles.CopyToDevice();
 
             this.nodebuffer.Clear();
-            this.indexbuffer.Clear();
-
             this.nodebuffer.AddRange(this.BuildAcceleration());
-            this.indexbuffer.AddRange(this.indices);
-
             this.nodebuffer.CopyToDevice();
-            this.indexbuffer.CopyToDevice();
+
+            this.triangles.Clear();
+
+            foreach (int i in this.indices)
+            {
+                this.triangles.Add(this.references[i]);
+            }
+
+            this.triangles.CopyToDevice();
         }
 
         public void Dispose()
@@ -86,12 +89,11 @@ namespace PathTracer
             this.materials.Dispose();
             this.triangles.Dispose();
             this.nodebuffer.Dispose();
-            this.indexbuffer.Dispose();
         }
 
         private void AddTriangle(Triangle triangle)
         {
-            this.triangles.Add(triangle);
+            this.references.Add(triangle);
 
             Box aabb = Box.FromTriangle(triangle);
 
@@ -107,17 +109,17 @@ namespace PathTracer
 
         private Node[] BuildAcceleration()
         {
-            Node[] nodes = new Node[this.triangles.Count * 2 - 1];
+            Node[] nodes = new Node[this.references.Count * 2 - 1];
 
             indices.Clear();
-            for (int i = 0; i < this.triangles.Count; i++)
+            for (int i = 0; i < this.references.Count; i++)
             {
                 indices.Add(i);
             }
 
             nodes[0] = new Node()
             {
-                Count = this.triangles.Count,
+                Count = this.references.Count,
                 LeftFirst = 0
             };
 

@@ -88,7 +88,6 @@ layout(std430,  binding=1) buffer material_buffer { Material materials[]; };
 layout(std430,  binding=2) buffer sphere_buffer   { Sphere spheres[]; };
 layout(std430,  binding=3) buffer triangle_buffer { Triangle triangles[]; };
 layout(std430,  binding=4) buffer node_buffer     { Node nodes[]; };
-layout(std430,  binding=5) buffer index_buffer    { int indices[]; };
 
 uniform uint   frame;
 uniform uint   samples;
@@ -253,8 +252,7 @@ Hit intersect_scene(Ray ray)
             {
                 for (int i = n.leftFirst; i < n.leftFirst + n.count; i++)
                 {
-                    int j = indices[i];
-                    Triangle t = Triangle(triangles[j].v1, triangles[j].v2, triangles[j].v3, triangles[j].material);
+                    Triangle t = Triangle(triangles[i].v1, triangles[i].v2, triangles[i].v3, triangles[i].material);
                     ray_triangle_intersection(ray, t, hit);
                 }
             }
