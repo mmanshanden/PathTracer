@@ -12,7 +12,7 @@ namespace PathTracer
         const float MOVESPEED = 4.5f;
         const float TURNSPEED = 1.0f;
 
-        private static readonly Vector4 SkyColor = new Vector4(142.0f / 255.0f, 178.0f / 255.0f, 237.0f / 255.0f, 1);
+        private static readonly Vector4 SkyColor = Vector4.Zero; // new Vector4(142.0f / 255.0f, 178.0f / 255.0f, 237.0f / 255.0f, 1);
 
         private ShaderProgram quad;
         private ShaderProgram compute;
@@ -80,14 +80,15 @@ namespace PathTracer
             this.compute.SetUniform("sky_color", SkyColor);
 
             this.screen = new Image(1, 1);
-            this.camera = new Camera(new Vector3(0, 5, 5), Vector3.Zero);
+            this.camera = new Camera(new Vector3(0, 1, 4), Vector3.UnitY);
         }
 
         private void InitializeScene()
         {
             Material light = new Material()
             {
-                Color = new Vector4(1.8f),
+                Color = new Vector4(1.0f),
+                Emissive = new Vector4(1.8f, 1.8f, 1.8f, 1.0f),
                 Type = MaterialType.Emissive
             };
 
@@ -203,7 +204,7 @@ namespace PathTracer
             if (keystate.IsKeyDown(Key.R))
             {
                 this.samples = 0;
-                this.camera = new Camera(new Vector3(0, 5, 5), Vector3.Zero);
+                this.camera = new Camera(new Vector3(0, 1, 4), Vector3.UnitY);
             }
 
             this.camera.SetUniform("camera", this.compute);

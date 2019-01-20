@@ -38,6 +38,7 @@ struct Ray
 struct Material
 {
     vec4 color;
+    vec4 emissive;
     int type;
     float index;
 };
@@ -320,9 +321,9 @@ vec4 Sample(Ray ray, inout uint seed)
 
         const Material mat = materials[hit.material];
 
-        if (mat.type == MATERIAL_EMISSIVE)
+        if (mat.emissive.x > 0 || mat.emissive.y > 0 || mat.emissive.z > 0)
         {
-            return throughput * mat.color;
+            return throughput * mat.emissive;
         }
 
         vec3 new_dir;

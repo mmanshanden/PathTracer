@@ -34,6 +34,7 @@ namespace PathTracer
                 int material = this.GetMaterialIndex(new Material()
                 {
                     Color = new Vector4(group.Material.DiffuseColor, 0),
+                    Emissive = new Vector4(group.Material.EmissiveColor, 0),
                     Type = MaterialType.Diffuse
                 });
 

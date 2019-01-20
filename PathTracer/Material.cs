@@ -4,12 +4,13 @@ using System.Runtime.InteropServices;
 
 namespace PathTracer
 {
-    [StructLayout(LayoutKind.Explicit, Size = 32)]
+    [StructLayout(LayoutKind.Explicit, Size = 48)]
     struct Material
     {
         [FieldOffset(00)] public Vector4 Color;
-        [FieldOffset(16)] public MaterialType Type;
-        [FieldOffset(20)] public float Index;
+        [FieldOffset(16)] public Vector4 Emissive;
+        [FieldOffset(32)] public MaterialType Type;
+        [FieldOffset(36)] public float Index;
 
         public override int GetHashCode()
         {
