@@ -29,7 +29,7 @@ namespace PathTracer.Library.Geometry
                 for (int i = 2; i < this.frames.Length; i++)
                 {
                     Vertex c = this.BuildVertex(this.frames[i]);
-                    yield return new[] { c, b, a };
+                    yield return new[] { a, b, c };
                     b = c;
                 }
             }
