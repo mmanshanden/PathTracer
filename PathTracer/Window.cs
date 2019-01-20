@@ -19,7 +19,7 @@ namespace PathTracer
         public Window(int width, int height)
             : base(width, height)
         {
-            this.game = new Game();
+            this.game = new Game(this);
         }
 
         protected override void OnLoad(EventArgs e)

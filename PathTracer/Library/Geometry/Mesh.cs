@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using PathTracer.Library.Extensions;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -13,6 +14,9 @@ namespace PathTracer.Library.Geometry
         private readonly List<Vector2> texcoords;
 
         private readonly List<Group> groups;
+
+        public bool Normalized { get; set; }
+        public Matrix4x4 Transform { get; set; }
 
         private Vector3 min;
         private Vector3 max;
@@ -36,13 +40,23 @@ namespace PathTracer.Library.Geometry
 
             this.groups = new List<Group>();
 
-            this.min = Vector3.Zero;
-            this.max = Vector3.Zero;
+            this.min = new Vector3(float.PositiveInfinity);
+            this.max = new Vector3(float.NegativeInfinity);
+
+            this.Normalized = false;
+            this.Transform = Matrix4x4.Identity;
         }
 
         public Vector3 GetPosition(int i)
         {
-            return this.positions[i];
+            Vector3 p = this.positions[i];
+
+            if (this.Normalized)
+            {
+                p = (p - this.min) / (this.max - this.min).MaxValue();
+            }
+
+            return Vector3.Transform(p, this.Transform);
         }
 
         public Vector2 GetTexcoord(int j)
@@ -52,7 +66,7 @@ namespace PathTracer.Library.Geometry
 
         public Vector3 GetNormal(int k)
         {
-            return this.normals[k];
+            return Vector3.TransformNormal(this.normals[k], this.Transform).Normalized();
         }
 
         public static Mesh LoadFromFile(string path)

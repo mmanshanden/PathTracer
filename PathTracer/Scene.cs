@@ -25,9 +25,32 @@ namespace PathTracer
             this.lut = new Dictionary<Material, int>();
         }
 
+        public void AddMeshNormalized(string path)
+        {
+            this.AddMesh(path, true, Matrix4x4.Identity);
+        }
+
+        public void AddMeshNormalized(string path, Matrix4x4 transform)
+        {
+            this.AddMesh(path, true, transform);
+        }
+
         public void AddMesh(string path)
         {
+            this.AddMesh(path, false, Matrix4x4.Identity);
+        }
+
+        public void AddMesh(string path, Matrix4x4 transform)
+        {
+            this.AddMesh(path, false, transform);
+        }
+
+        private void AddMesh(string path, bool normalized, Matrix4x4 transform)
+        {
             Mesh mesh = Mesh.LoadFromFile(path);
+
+            mesh.Normalized = normalized;
+            mesh.Transform = transform;
 
             foreach (Group group in mesh.Groups)
             {

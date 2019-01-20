@@ -18,6 +18,7 @@ namespace PathTracer
         private ShaderProgram compute;
         private Image screen;
 
+        private readonly Window window;
         private Camera camera;
         private Scene scene;
 
@@ -26,9 +27,9 @@ namespace PathTracer
 
         public uint Samples => this.samples;
 
-        public Game()
+        public Game(Window window)
         {
-
+            this.window = window;
         }
 
         private static IEnumerable<Material> RandomMaterials(int count, Random rng)
@@ -62,7 +63,7 @@ namespace PathTracer
                 };
             }
         }
-        
+
         public void Initialize()
         {
             this.quad = new ShaderProgram(
@@ -80,7 +81,7 @@ namespace PathTracer
             this.compute.SetUniform("sky_color", SkyColor);
 
             this.screen = new Image(1, 1);
-            this.camera = new Camera(new Vector3(0, 1, 4), Vector3.UnitY);
+            this.camera = new Camera(new Vector3(0.5f, 0.5f, 4.0f), Vector3.One * 0.5f);
         }
 
         private void InitializeScene()
@@ -88,41 +89,37 @@ namespace PathTracer
             Material light = new Material()
             {
                 Color = new Vector4(1.0f),
-                Emissive = new Vector4(1.8f, 1.8f, 1.8f, 1.0f),
+                Emissive = new Vector4(2.0f, 2.0f, 2.0f, 1.0f),
                 Type = MaterialType.Emissive
             };
 
-            Material diffuseGreen = new Material()
-            {
-                Color = new Vector4(0.2f, 0.6f, 0.2f, 1.0f),
-                Type = MaterialType.Diffuse
-            };
-
-            Material diffuseWhite = new Material()
+            Material floor = new Material()
             {
                 Color = new Vector4(0.8f),
                 Type = MaterialType.Diffuse
             };
 
-            Material dielectric = new Material()
-            {
-                Color = new Vector4(1.0f, 1.0f, 0.9f, 1.0f),
-                Index = 1.2f,
-                Type = MaterialType.Dielectric
-            };
-
             this.scene = new Scene();
 
             this.scene.AddQuad(
-                new Vector3(-5, 10, -5), 
-                new Vector3(5, 10, -5), 
-                new Vector3(5, 10, 5), 
-                new Vector3(-5, 10, 5), 
+                new Vector3(-5, 10, -5),
+                new Vector3(5, 10, -5),
+                new Vector3(5, 10, 5),
+                new Vector3(-5, 10, 5),
                 light);
 
-            this.scene.AddMesh("Assets/mesh/cornell.obj");
-            this.scene.AddMesh("Assets/Mesh/floor.obj", diffuseWhite);
-            //this.scene.AddMesh("Assets/Mesh/bunny.obj", diffuseGreen);
+            this.scene.AddMesh("Assets/Mesh/floor.obj", floor);
+
+            this.scene.AddMeshNormalized("Assets/Mesh/torus.obj");
+
+            var rot = Matrix4x4.CreateRotationY(MathF.PI * 0.5f, Vector3.One * 0.5f);
+            var translate = Matrix4x4.CreateTranslation(0.4f, 0.55f, -0.4f);
+
+            this.scene.AddMeshNormalized("Assets/Mesh/torus.obj", rot * translate);
+
+            var translate2 = Matrix4x4.CreateTranslation(0, 1.15f, 0);
+
+            this.scene.AddMeshNormalized("Assets/Mesh/torus.obj", translate2);
         }
 
         public void Resize(int width, int height)
@@ -204,7 +201,8 @@ namespace PathTracer
             if (keystate.IsKeyDown(Key.R))
             {
                 this.samples = 0;
-                this.camera = new Camera(new Vector3(0, 1, 4), Vector3.UnitY);
+                this.window.ClientSize = new OpenTK.Size(512, 512);
+                this.camera = new Camera(new Vector3(0.5f, 0.5f, 4.0f), Vector3.One * 0.5f);
             }
 
             this.camera.SetUniform("camera", this.compute);
