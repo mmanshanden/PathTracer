@@ -31,6 +31,12 @@ namespace PathTracer
 
             foreach (Group group in mesh.Groups)
             {
+                int material = this.GetMaterialIndex(new Material()
+                {
+                    Color = new Vector4(group.Material.DiffuseColor, 0),
+                    Type = MaterialType.Diffuse
+                });
+
                 foreach (Face face in group.Faces)
                 {
                     foreach (Library.Geometry.Vertex[] vertices in face.Triangulate)
@@ -40,7 +46,7 @@ namespace PathTracer
                             V1 = new Vertex() { Position = new Vector4(vertices[0].Position, 0) },
                             V2 = new Vertex() { Position = new Vector4(vertices[1].Position, 0) },
                             V3 = new Vertex() { Position = new Vector4(vertices[2].Position, 0) },
-                            Material = 0
+                            Material = material
                         });
                     }
                 }

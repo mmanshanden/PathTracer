@@ -119,8 +119,9 @@ namespace PathTracer
                 new Vector3(-5, 10, 5), 
                 light);
 
+            this.scene.AddMesh("Assets/mesh/cornell.obj");
             this.scene.AddMesh("Assets/Mesh/floor.obj", diffuseWhite);
-            this.scene.AddMesh("Assets/Mesh/bunny.obj", diffuseGreen);
+            //this.scene.AddMesh("Assets/Mesh/bunny.obj", diffuseGreen);
         }
 
         public void Resize(int width, int height)

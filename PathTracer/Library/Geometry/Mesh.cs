@@ -58,7 +58,11 @@ namespace PathTracer.Library.Geometry
         public static Mesh LoadFromFile(string path)
         {
             Mesh mesh = new Mesh();
-            List<Face> faces = new List<Face>();
+            var faces = new List<Face>();
+            var materials = new Dictionary<string, Material>();
+
+            Material material = new Material();
+            string name = string.Empty;
 
             using (StreamReader reader = new StreamReader(path))
             {
@@ -104,13 +108,45 @@ namespace PathTracer.Library.Geometry
 
                             faces.Add(new Face(mesh, frames));
                             break;
+                        case "mtllib":
+                            string mtlpath = Path.Join(Path.GetDirectoryName(path), arg);
 
+                            foreach (var mtl in ReadMtlFile(mtlpath))
+                            {
+                                if (materials.ContainsKey(mtl.Key))
+                                {
+                                    materials[mtl.Key] = mtl.Value;
+                                }
+                                else
+                                {
+                                    materials.Add(mtl.Key, mtl.Value);
+                                }
+                            }
+
+                            break;
                         case "g":
+                            if (faces.Count > 0)
+                            {
+                                mesh.groups.Add(new Group(faces, name, material));
+                                faces = new List<Face>();
+                            }
+
+                            name = arg;
+                            break;
                         case "usemtl":
                             if (faces.Count > 0)
                             {
-                                mesh.groups.Add(new Group(faces));
+                                mesh.groups.Add(new Group(faces, name, material));
                                 faces = new List<Face>();
+                            }
+
+                            if (materials.ContainsKey(arg))
+                            {
+                                material = materials[arg];
+                            }
+                            else
+                            {
+                                material = new Material();
                             }
                             break;
                     }
@@ -121,16 +157,70 @@ namespace PathTracer.Library.Geometry
                 // add remaining faces
                 if (faces.Count > 0)
                 {
-                    mesh.groups.Add(new Group(faces));
+                    mesh.groups.Add(new Group(faces, name, material));
                 }
             }
 
             return mesh;
         }
 
+        private static Dictionary<string, Material> ReadMtlFile(string path)
+        {
+            var materials = new Dictionary<string, Material>();
+
+            using (StreamReader reader = new StreamReader(path))
+            {
+                string line = reader.ReadLine();
+                string name = string.Empty;
+                Material material = new Material();
+
+                while (line != null)
+                {
+                    ReadObjLine(line, out string key, out string arg);
+
+                    switch (key)
+                    {
+                        case "newmtl":
+                            materials.Add(name, material);
+
+                            name = arg;
+                            material = new Material();
+                            break;
+                        case "Ka":
+                            material.EmissiveColor = ReadVector3(arg);
+                            break;
+                        case "Kd":
+                            material.DiffuseColor = ReadVector3(arg);
+                            break;
+                        case "Ke":
+                            material.EmissiveColor = ReadVector3(arg);
+                            break;
+                        case "Ks":
+                            material.SpecularColor = ReadVector3(arg);
+                            break;
+                        case "Ns":
+                            material.SpecularExponent = ReadFloat(arg);
+                            break;
+                        case "Tr":
+                            material.Transparency = ReadFloat(arg);
+                            break;
+                        case "d":
+                            material.Transparency = 1.0f - ReadFloat(arg);
+                            break;
+                    }
+
+                    line = reader.ReadLine();
+                }
+
+                materials.Add(name, material);
+            }
+
+            return materials;
+        }
+
         private static string[] ReadParts(string s)
         {
-            return s.Split(' ').Where(str => str != string.Empty).ToArray();
+            return s.Trim().Replace('\t', ' ').Split(' ').Where(str => str != "").ToArray();
         }
 
         private static void ReadObjLine(string s, out string key, out string arg)
@@ -143,22 +233,22 @@ namespace PathTracer.Library.Geometry
                 return;
             }
 
-            string[] parts = s.Split(' ', 2);
+            string[] parts = s.Replace('\t', ' ').Trim().Split(' ', 2);
 
             if (parts.Length < 2)
             {
                 return;
             }
 
-            key = parts[0];
-            arg = parts[1];
+            key = parts[0].Trim();
+            arg = parts[1].Trim();
         }
 
         private static Vector2 ReadVector2(string s)
         {
             string[] parts = ReadParts(s);
 
-            if (parts.Length != 2)
+            if (parts.Length < 2)
             {
                 throw new InvalidDataException("Cannot parse .obj file");
             }
@@ -173,16 +263,21 @@ namespace PathTracer.Library.Geometry
         {
             string[] parts = ReadParts(s);
 
-            if (parts.Length != 3)
+            if (parts.Length < 3)
             {
                 throw new InvalidDataException("Cannot parse .obj file");
             }
 
             return new Vector3(
-                float.Parse(parts[0], CultureInfo.InvariantCulture),
-                float.Parse(parts[1], CultureInfo.InvariantCulture),
-                float.Parse(parts[2], CultureInfo.InvariantCulture)
+                ReadFloat(parts[0]),
+                ReadFloat(parts[1]),
+                ReadFloat(parts[2])
             );
+        }
+
+        private static float ReadFloat(string s)
+        {
+            return float.Parse(s, CultureInfo.InvariantCulture);
         }
 
         private static Frame ReadFrame(string s)

@@ -5,6 +5,9 @@ namespace PathTracer.Library.Geometry
     class Group
     {
         private readonly List<Face> faces;
+        
+        public string Name { get; private set; }
+        public Material Material { get; private set; }
 
         public IEnumerable<Face> Faces
         {
@@ -17,9 +20,11 @@ namespace PathTracer.Library.Geometry
             }
         }
 
-        public Group(List<Face> faces)
+        public Group(List<Face> faces, string name, Material material)
         {
             this.faces = faces;
+            this.Name = name;
+            this.Material = material;
         }
     }
 }

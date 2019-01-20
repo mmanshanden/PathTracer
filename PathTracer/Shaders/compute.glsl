@@ -167,7 +167,7 @@ void ray_triangle_intersection(Ray ray, const int index, inout Hit hit)
     {
         hit.distance = t;
         hit.position = ray.origin + ray.direction * t;
-        hit.normal   = normalize(cross(edge2, edge1));
+        hit.normal   = normalize(cross(edge1, edge2));
         hit.material = triangles[index].material;
     }
 }
