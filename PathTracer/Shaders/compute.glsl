@@ -188,14 +188,16 @@ bool ray_aabb_test(Ray ray, const vec3 minimum, const vec3 maximum, out float tm
     return (tmax > 0 && tmin < tmax);
 }
 
-bool ray_node_bounds_test(Ray ray, const int node, out float tmin, out float tmax)
+bool ray_node_bounds_test(Ray ray, const int idx, out float tmin, out float tmax)
 {
-    const float t1 = (nodes[node].bounds_min_x - ray.origin.x) * ray.reciprocal.x;
-    const float t2 = (nodes[node].bounds_max_x - ray.origin.x) * ray.reciprocal.x;
-    const float t3 = (nodes[node].bounds_min_y - ray.origin.y) * ray.reciprocal.y;
-    const float t4 = (nodes[node].bounds_max_y - ray.origin.y) * ray.reciprocal.y;
-    const float t5 = (nodes[node].bounds_min_z - ray.origin.z) * ray.reciprocal.z;
-    const float t6 = (nodes[node].bounds_max_z - ray.origin.z) * ray.reciprocal.z;
+    const Node n = nodes[idx];
+
+    const float t1 = (n.bounds_min_x - ray.origin.x) * ray.reciprocal.x;
+    const float t2 = (n.bounds_max_x - ray.origin.x) * ray.reciprocal.x;
+    const float t3 = (n.bounds_min_y - ray.origin.y) * ray.reciprocal.y;
+    const float t4 = (n.bounds_max_y - ray.origin.y) * ray.reciprocal.y;
+    const float t5 = (n.bounds_min_z - ray.origin.z) * ray.reciprocal.z;
+    const float t6 = (n.bounds_max_z - ray.origin.z) * ray.reciprocal.z;
 
     tmin = max(max(min(t1, t2), min(t3, t4)), min(t5, t6));
     tmax = min(min(max(t1, t2), max(t3, t4)), max(t5, t6));
@@ -205,63 +207,47 @@ bool ray_node_bounds_test(Ray ray, const int node, out float tmin, out float tma
 
 Hit intersect_scene(Ray ray)
 {
+    float tmin, tmax;
+
     Hit hit;
     hit.distance = FLT_MAX;
     hit.material = -1;
 
-    Node stack[10];
-    int stack_pos = 0;
+    int candidates[128];
+    int c = 0;
 
-    stack[0] = nodes[0];
+    int stack[32];
+    int p = 0;
 
-    while (stack_pos >= 0)
+    stack[0] = 0;
+
+    while (p >= 0)
     {
-        Node n = stack[stack_pos];
-        stack_pos--;
+        int idx = stack[p--];
 
-        if (n.count > 0)
+        if (ray_node_bounds_test(ray, idx, tmin, tmax))
         {
-            for (int i = n.leftFirst; i < n.leftFirst + n.count; i++)
+            Node n = nodes[idx];
+
+            if (n.count > 0)
             {
-                ray_triangle_intersection(ray, i, hit);
+                for (int i = n.leftFirst; i < n.leftFirst + n.count; i++)
+                {
+                    candidates[c] = i;
+                    c = min(c + 1, 127);
+                }
+            }
+            else
+            {
+                stack[++p] = n.leftFirst;
+                stack[++p] = n.leftFirst + 1;
             }
         }
-        else
-        {
-            float tleft, tright, tout;
+    }
 
-            const bool l = ray_node_bounds_test(ray, n.leftFirst, tleft, tout);
-            const bool r = ray_node_bounds_test(ray, n.leftFirst + 1, tright, tout);
-
-            if (l && r)
-            {
-                if (tleft < tright && tleft < hit.distance)
-                {
-                    stack[++stack_pos] = nodes[n.leftFirst];
-                    stack[++stack_pos] = nodes[n.leftFirst + 1];
-                }
-                else if (tright < hit.distance)
-                {
-                    stack[++stack_pos] = nodes[n.leftFirst + 1];
-                    stack[++stack_pos] = nodes[n.leftFirst];
-                }   
-            }
-            else if (l)
-            {
-                if (tleft < hit.distance)
-                {
-                    stack[++stack_pos] = nodes[n.leftFirst];
-                }
-            }
-            else 
-            {
-                if (tright < hit.distance)
-                {
-                    stack[++stack_pos] = nodes[n.leftFirst + 1];
-                }
-            }
-        }
-        
+    for (int i = 0; i < c; i++)
+    {
+        ray_triangle_intersection(ray, candidates[i], hit);
     }
 
     return hit;
