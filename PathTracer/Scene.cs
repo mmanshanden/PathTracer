@@ -67,9 +67,9 @@ namespace PathTracer
                     {
                         this.accelerator.AddTriangle(new Triangle()
                         {
-                            V1 = new Vertex() { Position = new Vector4(vertices[0].Position, 0) },
-                            V2 = new Vertex() { Position = new Vector4(vertices[1].Position, 0) },
-                            V3 = new Vertex() { Position = new Vector4(vertices[2].Position, 0) },
+                            V1 = new Vertex() { Position = new Vector4(vertices[0].Position, 0), Normal = new Vector4(vertices[0].Normal, 0) },
+                            V2 = new Vertex() { Position = new Vector4(vertices[1].Position, 0), Normal = new Vector4(vertices[1].Normal, 0) },
+                            V3 = new Vertex() { Position = new Vector4(vertices[2].Position, 0), Normal = new Vector4(vertices[2].Normal, 0) },
                             Material = material
                         });
                     }
@@ -89,9 +89,9 @@ namespace PathTracer
                     {
                         this.accelerator.AddTriangle(new Triangle()
                         {
-                            V1 = new Vertex() { Position = new Vector4(vertices[0].Position, 0) },
-                            V2 = new Vertex() { Position = new Vector4(vertices[1].Position, 0) },
-                            V3 = new Vertex() { Position = new Vector4(vertices[2].Position, 0) },
+                            V1 = new Vertex() { Position = new Vector4(vertices[0].Position, 0), Normal = new Vector4(vertices[0].Normal, 0) },
+                            V2 = new Vertex() { Position = new Vector4(vertices[1].Position, 0), Normal = new Vector4(vertices[1].Normal, 0) },
+                            V3 = new Vertex() { Position = new Vector4(vertices[2].Position, 0), Normal = new Vector4(vertices[2].Normal, 0) },
                             Material = this.GetMaterialIndex(material)
                         });
                     }

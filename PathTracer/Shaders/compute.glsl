@@ -60,6 +60,7 @@ struct Sphere
 struct Vertex
 {
     vec4 position;
+    vec4 normal;
 };
 
 struct Triangle
@@ -139,14 +140,16 @@ Ray generate_ray(const ivec2 screen_pos, inout uint seed)
 
 void ray_triangle_intersection(Ray ray, const int index, inout Hit hit)
 {
-    const vec3 edge1 = triangles[index].v2.position.xyz - triangles[index].v1.position.xyz;
-    const vec3 edge2 = triangles[index].v3.position.xyz - triangles[index].v1.position.xyz;
+    const Triangle tri = triangles[index];
+
+    const vec3 edge1 = tri.v1.position.xyz - tri.v3.position.xyz;
+    const vec3 edge2 = tri.v2.position.xyz - tri.v3.position.xyz;
     
     const vec3 h = cross(ray.direction, edge2);
     const float a = dot(edge1, h);
     
     const float f = 1.0 / a;
-    const vec3 s = ray.origin - triangles[index].v1.position.xyz;
+    const vec3 s = ray.origin - tri.v3.position.xyz;
     const float u = f * dot(s, h);
     
     if (u < 0.0 || u > 1.0)
@@ -163,13 +166,16 @@ void ray_triangle_intersection(Ray ray, const int index, inout Hit hit)
     }
     
     const float t = f * dot(edge2, q);
-    
+    const float w = 1.0 - u - v;
+
     if (t > 0.0 && t < hit.distance)
     {
         hit.distance = t;
         hit.position = ray.origin + ray.direction * t;
-        hit.normal   = normalize(cross(edge1, edge2));
-        hit.material = triangles[index].material;
+        hit.material = tri.material;
+        hit.normal   = tri.v1.normal.xyz * u 
+                     + tri.v2.normal.xyz * v 
+                     + tri.v3.normal.xyz * w;
     }
 }
 
@@ -304,7 +310,7 @@ vec4 Sample(Ray ray, inout uint seed)
         {
             return throughput * sky_color;
         }
-
+        
         const Material mat = materials[hit.material];
 
         if (mat.emissive.x > 0 || mat.emissive.y > 0 || mat.emissive.z > 0)
