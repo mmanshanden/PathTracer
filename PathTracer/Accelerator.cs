@@ -7,7 +7,9 @@ namespace PathTracer
 {
     class Accelerator
     {
+        const float Epsilon = 0.00001f;
         const int LeafNodeSize = 3;
+        const int BucketCount = 8;
 
         private class Primitive
         {
@@ -106,34 +108,96 @@ namespace PathTracer
 
         private int Parition(Node node)
         {
+            Func<Vector3, float> axis;
+
             switch (node.Bounds.Domain())
             {
-                case 0: this.Sort(node.LeftFirst, node.Count, pr => pr.Centroid.X); break;
-                case 1: this.Sort(node.LeftFirst, node.Count, pr => pr.Centroid.Y); break;
-                case 2: this.Sort(node.LeftFirst, node.Count, pr => pr.Centroid.Z); break;
+                case 0: axis = (v => v.X); break;
+                case 1: axis = (v => v.Y); break;
+                default: axis = (v => v.Z); break;
             }
 
-            float cost = node.Bounds.Area() * node.Count;
+            Box bounds = this.CentroidBounds(node.LeftFirst, node.Count);
 
-            int split = -1;
+            float k0 = axis(bounds.Min);
+            float l = axis(bounds.Max) - k0;
 
-            for (int l = 0; l < node.Count; l++)
+            if (l < Epsilon)
             {
-                int r = node.Count - l;
+                return -1;
+            }
 
-                Box lb = this.Bounds(node.LeftFirst, l);
-                Box rb = this.Bounds(node.LeftFirst + l, r);
+            float k1 = (BucketCount - Epsilon) / l;
 
-                float c = lb.Area() * l + rb.Area() * r;
+            var bins = new List<Primitive>[BucketCount];
+            var domains = new Box[BucketCount];
 
-                if (c <= cost)
+            for (int i = 0; i < BucketCount; i++)
+            {
+                bins[i] = new List<Primitive>();
+                domains[i] = Box.Negative;
+            }
+
+            // bin primitives
+            for (int i = node.LeftFirst; i < node.LeftFirst + node.Count; i++)
+            {
+                float c = axis(this.primitives[i].Centroid);
+                float b = (c - k0) * k1;
+                int j = (int)b;
+
+                bins[j].Add(this.primitives[i]);
+                domains[j] = Box.Union(domains[j], this.primitives[i].Bounds);
+            }
+            
+            int partition = -1;
+            float cost = float.PositiveInfinity;
+
+            int ln = 0, rn = node.Count;
+
+            // select best bin split
+            for (int i = 1; i < BucketCount; i++)
+            {
+                ln += bins[i - 1].Count;
+                rn -= bins[i - 1].Count;
+
+                Box lb = Box.Negative;
+                Box rb = Box.Negative;
+
+                for (int j = 0; j < i; j++)
                 {
+                    lb = Box.Union(domains[j], lb);
+                }
+
+                for (int j = i; j < BucketCount; j++)
+                {
+                    rb = Box.Union(domains[j], rb);
+                }
+
+                float c = ln * lb.Area() + rn * rb.Area();
+
+                if (c < cost)
+                {
+                    partition = ln;
                     cost = c;
-                    split = l;
                 }
             }
 
-            return split;
+            if (partition < 0)
+            {
+                return -1;
+            }
+
+            int p = node.LeftFirst;
+
+            for (int i = 0; i < BucketCount; i++)
+            {
+                for (int j = 0; j < bins[i].Count; j++)
+                {
+                    this.primitives[p++] = bins[i][j];
+                }
+            }
+
+            return partition;
         }
 
         private Box Bounds(int first, int count)
@@ -146,6 +210,24 @@ namespace PathTracer
             }
 
             return bounds;
+        }
+
+        private Box CentroidBounds(int first, int count)
+        {
+            Vector3 min = new Vector3(float.PositiveInfinity);
+            Vector3 max = new Vector3(float.NegativeInfinity);
+
+            for (int i = first; i < first + count; i++)
+            {
+                min = Vector3.Min(this.primitives[i].Centroid, min);
+                max = Vector3.Max(this.primitives[i].Centroid, max);
+            }
+
+            return new Box()
+            {
+                Max = max,
+                Min = min
+            };
         }
 
         private void Sort(int first, int count, Func<Primitive, float> selector)
