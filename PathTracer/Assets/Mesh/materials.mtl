@@ -1,0 +1,15 @@
+# Library of materials used by different meshes
+
+newmtl light
+  Ns 1.0
+  Ka 0.0 0.0 0.0
+  Kd 1.0 1.0 1.0
+  Ks 0.0 0.0 0.0
+  Ke 3.0 3.0 3.0
+
+newmtl white_diffuse
+  Ns 1.0
+  Ka 0.8 0.8 0.8
+  Kd 0.8 0.8 0.8
+  Ks 0.0 0.0 0.0
+  Ke 0.0 0.0 0.0

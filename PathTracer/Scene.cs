@@ -30,9 +30,19 @@ namespace PathTracer
             this.AddMesh(path, true, Matrix4x4.Identity);
         }
 
+        public void AddMeshNormalized(string path, Material material)
+        {
+            this.AddMesh(path, true, Matrix4x4.Identity, material);
+        }
+
         public void AddMeshNormalized(string path, Matrix4x4 transform)
         {
             this.AddMesh(path, true, transform);
+        }
+
+        public void AddMeshNormalized(string path, Matrix4x4 transform, Material material)
+        {
+            this.AddMesh(path, true, transform, material);
         }
 
         public void AddMesh(string path)
@@ -40,9 +50,19 @@ namespace PathTracer
             this.AddMesh(path, false, Matrix4x4.Identity);
         }
 
+        public void AddMesh(string path, Material material)
+        {
+            this.AddMesh(path, false, Matrix4x4.Identity, material);
+        }
+
         public void AddMesh(string path, Matrix4x4 transform)
         {
             this.AddMesh(path, false, transform);
+        }
+
+        public void AddMesh(string path, Matrix4x4 transform, Material material)
+        {
+            this.AddMesh(path, false, transform, material);
         }
 
         private void AddMesh(string path, bool normalized, Matrix4x4 transform)
@@ -61,79 +81,40 @@ namespace PathTracer
                     Type = MaterialType.Diffuse
                 });
 
-                foreach (Face face in group.Faces)
-                {
-                    foreach (Library.Geometry.Vertex[] vertices in face.Triangulate)
-                    {
-                        this.accelerator.AddTriangle(new Triangle()
-                        {
-                            V1 = new Vertex() { Position = new Vector4(vertices[0].Position, 0), Normal = new Vector4(vertices[0].Normal, 0) },
-                            V2 = new Vertex() { Position = new Vector4(vertices[1].Position, 0), Normal = new Vector4(vertices[1].Normal, 0) },
-                            V3 = new Vertex() { Position = new Vector4(vertices[2].Position, 0), Normal = new Vector4(vertices[2].Normal, 0) },
-                            Material = material
-                        });
-                    }
-                }
+                this.LoadGroup(group, material);
             }
         }
 
-        public void AddMesh(string path, Material material)
+        private void AddMesh(string path, bool normalized, Matrix4x4 transform, Material material)
         {
             Mesh mesh = Mesh.LoadFromFile(path);
 
+            mesh.Normalized = normalized;
+            mesh.Transform = transform;
+
+            int m = this.GetMaterialIndex(material);
+
             foreach (Group group in mesh.Groups)
             {
-                foreach (Face face in group.Faces)
+                this.LoadGroup(group, m);
+            }
+        }
+
+        private void LoadGroup(Group group, int material)
+        {
+            foreach (Face face in group.Faces)
+            {
+                foreach (Library.Geometry.Vertex[] vertices in face.Triangulate)
                 {
-                    foreach (Library.Geometry.Vertex[] vertices in face.Triangulate)
+                    this.accelerator.AddTriangle(new Triangle()
                     {
-                        this.accelerator.AddTriangle(new Triangle()
-                        {
-                            V1 = new Vertex() { Position = new Vector4(vertices[0].Position, 0), Normal = new Vector4(vertices[0].Normal, 0) },
-                            V2 = new Vertex() { Position = new Vector4(vertices[1].Position, 0), Normal = new Vector4(vertices[1].Normal, 0) },
-                            V3 = new Vertex() { Position = new Vector4(vertices[2].Position, 0), Normal = new Vector4(vertices[2].Normal, 0) },
-                            Material = this.GetMaterialIndex(material)
-                        });
-                    }
+                        V1 = new Vertex() { Position = new Vector4(vertices[0].Position, 0), Normal = new Vector4(vertices[0].Normal, 0) },
+                        V2 = new Vertex() { Position = new Vector4(vertices[1].Position, 0), Normal = new Vector4(vertices[1].Normal, 0) },
+                        V3 = new Vertex() { Position = new Vector4(vertices[2].Position, 0), Normal = new Vector4(vertices[2].Normal, 0) },
+                        Material = material
+                    });
                 }
             }
-        }
-
-        public void AddQuad(Vector3 p1, Vector3 p2, Vector3 p3, Vector3 p4, Material material)
-        {
-            Vertex v1 = new Vertex() { Position = new Vector4(p1, 0) };
-            Vertex v2 = new Vertex() { Position = new Vector4(p2, 0) };
-            Vertex v3 = new Vertex() { Position = new Vector4(p3, 0) };
-            Vertex v4 = new Vertex() { Position = new Vector4(p4, 0) };
-
-            this.accelerator.AddTriangle(new Triangle()
-            {
-                V1 = v1,
-                V2 = v2,
-                V3 = v3,
-                Material = this.GetMaterialIndex(material)
-            });
-
-            this.accelerator.AddTriangle(new Triangle()
-            {
-                V1 = v3,
-                V2 = v4,
-                V3 = v1,
-                Material = this.GetMaterialIndex(material)
-            });
-        }
-
-        public void AddMaterial(IEnumerable<Material> materials)
-        {
-            foreach (Material material in materials)
-            {
-                this.AddMaterial(material);
-            }
-        }
-
-        public void AddMaterial(Material material)
-        {
-            this.GetMaterialIndex(material);
         }
 
         public void CopyToDevice()
