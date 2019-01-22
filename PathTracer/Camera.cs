@@ -58,13 +58,13 @@ namespace PathTracer
             this.Set(this.position, this.position + this.forward + this.right * distance);
         }
 
-        public void SetUniform(string variable, ShaderProgram progam)
+        public void SetUniform(Uniform<State> state)
         {
-            progam.SetUniform($"{variable}.position", this.position);
-            progam.SetUniform($"{variable}.forward", this.forward);
-            progam.SetUniform($"{variable}.right", this.right);
-            progam.SetUniform($"{variable}.up", this.up);
-            progam.SetUniform($"{variable}.focal_distance", this.focal);
+            state.Data.Camera.Position = this.position;
+            state.Data.Camera.Forward = this.forward;
+            state.Data.Camera.Right = this.right;
+            state.Data.Camera.Up = this.up;
+            state.Data.Camera.FocalDistance = this.focal;
         }
     }
 }

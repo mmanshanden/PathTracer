@@ -22,10 +22,11 @@ namespace PathTracer
         private Camera camera;
         private Scene scene;
 
-        private int width, height;
-        private uint frame, samples;
+        private Uniform<State> state;
 
-        public uint Samples => this.samples;
+        private int width, height;
+
+        public uint Samples => this.state.Data.Samples;
 
         public Game(Window window)
         {
@@ -75,10 +76,11 @@ namespace PathTracer
 
             Random rng = new Random(4);
 
+            this.state = new Uniform<State>(1);
+            this.state.Data.SkyColor = SkyColor;
+
             this.InitializeScene();
             this.scene.CopyToDevice();
-
-            this.compute.SetUniform("sky_color", SkyColor);
 
             this.screen = new Image(1, 1);
             this.camera = new Camera(new Vector3(0.5f, 0.5f, 4.0f), Vector3.One * 0.5f);
@@ -129,90 +131,92 @@ namespace PathTracer
 
             this.screen.Dispose();
             this.screen = new Image(width, height);
-            this.samples = 0;
 
-            this.compute.SetUniform("screen.rcp_width", 1.0f / width);
-            this.compute.SetUniform("screen.rcp_height", 1.0f / height);
-            this.compute.SetUniform("screen.ar", (float)width / height);
+            this.state.Data.Samples = 0;
+            this.state.Data.Screen.ReciprocalWidth = 1.0f / width;
+            this.state.Data.Screen.ReciprocalHeight = 1.0f / height;
+            this.state.Data.Screen.AspectRatio = (float)width / height;
         }
 
         public void Update(float dt, KeyboardState keystate)
         {
             if (keystate.IsKeyDown(Key.W))
             {
-                this.samples = 0;
+                this.state.Data.Samples = 0;
                 this.camera.MoveForward(MOVESPEED * dt);
             }
 
             if (keystate.IsKeyDown(Key.S))
             {
-                this.samples = 0;
+                this.state.Data.Samples = 0;
                 this.camera.MoveForward(-MOVESPEED * dt);
             }
 
             if (keystate.IsKeyDown(Key.A))
             {
-                this.samples = 0;
+                this.state.Data.Samples = 0;
                 this.camera.MoveRight(-MOVESPEED * dt);
             }
 
             if (keystate.IsKeyDown(Key.D))
             {
-                this.samples = 0;
+                this.state.Data.Samples = 0;
                 this.camera.MoveRight(MOVESPEED * dt);
             }
 
             if (keystate.IsKeyDown(Key.Q))
             {
-                this.samples = 0;
+                this.state.Data.Samples = 0;
                 this.camera.MoveUp(MOVESPEED * dt);
             }
 
             if (keystate.IsKeyDown(Key.E))
             {
-                this.samples = 0;
+                this.state.Data.Samples = 0;
                 this.camera.MoveUp(-MOVESPEED * dt);
             }
 
             if (keystate.IsKeyDown(Key.Left))
             {
-                this.samples = 0;
+                this.state.Data.Samples = 0;
                 this.camera.RotateRight(-TURNSPEED * dt);
             }
 
             if (keystate.IsKeyDown(Key.Right))
             {
-                this.samples = 0;
+                this.state.Data.Samples = 0;
                 this.camera.RotateRight(TURNSPEED * dt);
             }
 
             if (keystate.IsKeyDown(Key.Up))
             {
-                this.samples = 0;
+                this.state.Data.Samples = 0;
                 this.camera.RotateUp(TURNSPEED * dt);
             }
 
             if (keystate.IsKeyDown(Key.Down))
             {
-                this.samples = 0;
+                this.state.Data.Samples = 0;
                 this.camera.RotateUp(-TURNSPEED * dt);
             }
 
             if (keystate.IsKeyDown(Key.R))
             {
-                this.samples = 0;
+                this.state.Data.Samples = 0;
                 this.window.ClientSize = new OpenTK.Size(512, 512);
                 this.camera = new Camera(new Vector3(0.5f, 0.5f, 4.0f), Vector3.One * 0.5f);
             }
 
-            this.camera.SetUniform("camera", this.compute);
+            this.camera.SetUniform(this.state);
         }
 
         public void Draw(float dt)
         {
+            this.state.CopyToDevice();
+            this.state.Data.Frame++;
+            this.state.Data.Samples++;
+
             this.compute.Use();
-            this.compute.SetUniform("frame", this.frame++);
-            this.compute.SetUniform("samples", this.samples++);
             GL.DispatchCompute(this.width / 8, this.height / 8, 1);
             GL.MemoryBarrier(MemoryBarrierFlags.ShaderStorageBarrierBit);
 

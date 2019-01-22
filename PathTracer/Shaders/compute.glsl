@@ -21,10 +21,10 @@ struct Screen
 
 struct Camera
 {
-    vec3 position;
-    vec3 forward;
-    vec3 right;
-    vec3 up;
+    vec4 position;
+    vec4 forward;
+    vec4 right;
+    vec4 up;
     float focal_distance;
 };
 
@@ -90,17 +90,19 @@ struct Node
 };
 
 layout(rgba32f, binding=0) uniform image2D screen_buffer;
+layout(std140,  binding=1) uniform render_state
+{
+    uint   frame;
+    uint   samples;
+    Screen screen;
+    Camera camera;
+    vec4   sky_color;
+};
 
-layout(std430,  binding=1) buffer material_buffer { Material materials[]; };
+layout(std430,  binding=2) buffer material_buffer { Material materials[]; };
 layout(std430,  binding=3) buffer triangle_buffer { Triangle triangles[]; };
 layout(std430,  binding=4) buffer node_buffer     { Node nodes[]; };
 
-uniform uint   frame;
-uniform uint   samples;
-uniform Screen screen;
-uniform Camera camera;
-uniform vec4   sky_color;
-uniform int    sphere_count;
 
 void xor_shift(inout uint seed)
 {
@@ -127,12 +129,12 @@ Ray generate_ray(const ivec2 screen_pos, inout uint seed)
     const float x = (random_float(seed) + screen_pos.x) * screen.rcp_width - 0.5;
     const float y = (random_float(seed) + screen_pos.y) * screen.rcp_height - 0.5;
 
-    const vec3 c = camera.forward * camera.focal_distance;
-    const vec3 d = normalize(c + camera.right * x * screen.ar + camera.up * y);
+    const vec3 c = camera.forward.xyz * camera.focal_distance;
+    const vec3 d = normalize(c + camera.right.xyz * x * screen.ar + camera.up.xyz * y);
 
     Ray r;
     r.direction  = d;
-    r.origin     = camera.position;
+    r.origin     = camera.position.xyz;
     r.reciprocal = 1.0 / d;
 
     return r;
