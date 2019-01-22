@@ -1,21 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Numerics;
-using System.Text;
+﻿using System.Numerics;
 
 namespace PathTracer.Library.Geometry
 {
-    class Vertex
+    struct Vertex
     {
-        public readonly Vector3 Position;
-        public readonly Vector2 Texcoord;
-        public readonly Vector3 Normal;
-
-        public Vertex(Vector3 position, Vector2 texcoord, Vector3 normal)
-        {
-            this.Position = position;
-            this.Texcoord = texcoord;
-            this.Normal = normal;
-        }
+        public Vector3 Position;
+        public Vector2 Texcoord;
+        public Vector3 Normal;
     }
 }

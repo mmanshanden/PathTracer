@@ -178,6 +178,8 @@ void ray_triangle_intersection(Ray ray, const int index, inout Hit hit)
         hit.normal   = tri.v1.normal.xyz * u 
                      + tri.v2.normal.xyz * v 
                      + tri.v3.normal.xyz * w;
+
+        hit.normal   = normalize(hit.normal);
     }
 }
 

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using PathTracer.Library.Extensions;
+using System.Collections.Generic;
 using System.Numerics;
 
 namespace PathTracer.Library.Geometry
@@ -29,6 +30,18 @@ namespace PathTracer.Library.Geometry
                 for (int i = 2; i < this.frames.Length; i++)
                 {
                     Vertex c = this.BuildVertex(this.frames[i]);
+                    Vector3 sum = a.Normal + b.Normal + c.Normal;
+
+                    if (sum.LengthSquared() < 0.5f)
+                    {
+                        Vector3 edge1 = a.Position - c.Position;
+                        Vector3 edge2 = b.Position - c.Position;
+
+                        Vector3 normal = Vector3.Cross(edge1, edge2).Normalized();
+
+                        a.Normal = b.Normal = c.Normal = normal;
+                    }
+
                     yield return new[] { a, b, c };
                     b = c;
                 }
@@ -43,10 +56,12 @@ namespace PathTracer.Library.Geometry
 
         private Vertex BuildVertex(Frame frame)
         {
-            return new Vertex(
-                frame.I < 0 ? default(Vector3) : this.mesh.GetPosition(frame.I),
-                frame.J < 0 ? default(Vector2) : this.mesh.GetTexcoord(frame.J),
-                frame.K < 0 ? default(Vector3) : this.mesh.GetNormal(frame.K));
+            return new Vertex()
+            {
+                Position = frame.I < 0 ? default(Vector3) : this.mesh.GetPosition(frame.I),
+                Texcoord = frame.J < 0 ? default(Vector2) : this.mesh.GetTexcoord(frame.J),
+                Normal = frame.K < 0 ? default(Vector3) : this.mesh.GetNormal(frame.K)
+            };
         }
     }
 }
