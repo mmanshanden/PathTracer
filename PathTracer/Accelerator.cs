@@ -24,6 +24,8 @@ namespace PathTracer
         private readonly Buffer<Triangle> triangles;
         private readonly Buffer<Node> nodes;
 
+        public int Count => this.primitives.Count;
+
         public Accelerator(Buffer<Triangle> triangles, Buffer<Node> nodes)
         {
             this.references = new List<Triangle>();
@@ -108,6 +110,12 @@ namespace PathTracer
             this.Subdivide(this.nodes[index].LeftFirst + 1);
         }
 
+        public void Clear()
+        {
+            this.references.Clear();
+            this.primitives.Clear();
+        }
+
         private int Parition(Node node)
         {
             Func<Vector3, float> axis;
@@ -152,7 +160,7 @@ namespace PathTracer
             }
             
             int partition = -1;
-            float cost = float.PositiveInfinity;
+            float cost = node.Bounds.Area() * node.Count;
 
             int ln = 0, rn = node.Count;
 
