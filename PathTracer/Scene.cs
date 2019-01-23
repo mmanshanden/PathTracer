@@ -67,6 +67,7 @@ namespace PathTracer
 
         private void AddMesh(string path, bool normalized, Matrix4x4 transform)
         {
+            Console.WriteLine($"Loading mesh at path {path} ...");
             Mesh mesh = Mesh.LoadFromFile(path);
 
             mesh.Normalized = normalized;
@@ -87,6 +88,7 @@ namespace PathTracer
 
         private void AddMesh(string path, bool normalized, Matrix4x4 transform, Material material)
         {
+            Console.WriteLine($"Loading mesh at path {path} ...");
             Mesh mesh = Mesh.LoadFromFile(path);
 
             mesh.Normalized = normalized;

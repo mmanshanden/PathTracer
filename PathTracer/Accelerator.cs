@@ -48,6 +48,8 @@ namespace PathTracer
 
         public void Build()
         {
+            Console.WriteLine($"Building bvh containing {this.primitives.Count} primitives ...");
+
             this.nodes.Clear();
             this.triangles.Clear();
 

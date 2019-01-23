@@ -30,7 +30,7 @@ namespace PathTracer.Library.Graphics
                 IntPtr.Zero, 
                 BufferUsageHint.StaticRead);
             
-            Console.WriteLine($"Initializing Uniform<{this.data.GetType().Name}>\t\t(binding={this.binding}, stride={this.stride})");
+            Console.WriteLine($"Initializing Uniform<{this.data.GetType().Name}> (binding={this.binding}, stride={this.stride})");
         }
 
         public void CopyToDevice()

@@ -47,7 +47,7 @@ namespace PathTracer.Library.Graphics
             int size = this.stride * this.count / 1024;
             string type = this.data[0].GetType().Name;
 
-            Console.WriteLine($"Transfering {size}K\tfrom Buffer<{type}>\t(binding={this.binding}, stride={this.stride}, count={this.count})");
+            Console.WriteLine($"Transfering {size}K from Buffer<{type}> (binding={this.binding}, stride={this.stride}, count={this.count})");
 
             if (this.count == this.allocated)
             {
