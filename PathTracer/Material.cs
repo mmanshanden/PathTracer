@@ -11,6 +11,7 @@ namespace PathTracer
         [FieldOffset(16)] public Vector4 Emissive;
         [FieldOffset(32)] public MaterialType Type;
         [FieldOffset(36)] public float Index;
+        [FieldOffset(40)] public float Alpha;
 
         public override int GetHashCode()
         {

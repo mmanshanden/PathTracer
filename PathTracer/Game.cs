@@ -12,7 +12,7 @@ namespace PathTracer
         const float MOVESPEED = 4.5f;
         const float TURNSPEED = 1.0f;
 
-        private static readonly Vector4 SkyColor = Vector4.Zero; // new Vector4(142.0f / 255.0f, 178.0f / 255.0f, 237.0f / 255.0f, 1);
+        private static readonly Vector4 SkyColor = new Vector4(142.0f / 255.0f, 178.0f / 255.0f, 237.0f / 255.0f, 1);
 
         private ShaderProgram quad;
         private ShaderProgram compute;
@@ -95,12 +95,39 @@ namespace PathTracer
                 Index = 1.5f
             };
 
+            Func<float, Material> alpha_mat = (float alpha) =>
+            {
+                return new Material()
+                {
+                    Color = new Vector4(1, 1, 1, 1),
+                    Type = MaterialType.Diffuse,
+                    Alpha = alpha
+                };
+            };
+
+            Material green = new Material()
+            {
+                Color = new Vector4(1, 1, 1, 1),
+                Type = MaterialType.Diffuse,
+                Alpha = 10.0f
+            };
+
+            Material copper = new Material()
+            {
+                Color = new Vector4(0.95f, 0.64f, 0.54f, 0.0f),
+                Type = MaterialType.Diffuse,
+                Alpha = 0.0f
+            };
+
             this.scene = new Scene();
 
-            this.scene.AddMesh("Assets/Mesh/floor.obj");
+            this.scene.AddMesh("Assets/Mesh/floor.obj", copper);
             this.scene.AddMesh("Assets/Mesh/light.obj");
 
-            this.scene.AddMeshNormalized("Assets/Mesh/bunny.obj", glass);
+            this.scene.AddMesh("Assets/Mesh/torus.obj", Matrix4x4.CreateTranslation(000, 0, 0), alpha_mat(0.0f));
+            this.scene.AddMesh("Assets/Mesh/torus.obj", Matrix4x4.CreateTranslation(002, 0, 0), alpha_mat(5.0f));
+            this.scene.AddMesh("Assets/Mesh/torus.obj", Matrix4x4.CreateTranslation(004, 0, 0), alpha_mat(20.0f));
+            this.scene.AddMesh("Assets/Mesh/torus.obj", Matrix4x4.CreateTranslation(006, 0, 0), alpha_mat(2000.0f));
         }
 
         public void Resize(int width, int height)
