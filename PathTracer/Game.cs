@@ -90,16 +90,16 @@ namespace PathTracer
         {
             Material glass = new Material()
             {
-                Color = new Vector4(1, 1, 0.92f, 1),
+                Color = new Vector4(0.92f, 1, 0.92f, 1),
                 Type = MaterialType.Dielectric,
-                Index = 1.5f
+                Index = 1.2f
             };
 
             Func<float, Material> alpha_mat = (float alpha) =>
             {
                 return new Material()
                 {
-                    Color = new Vector4(1.00f, 0.71f, 0.29f, 0.0f),
+                    Color = new Vector4(1.00f, 0.71f, 0.295f, 0.0f),
                     Type = MaterialType.Metal,
                     Alpha = alpha
                 };
@@ -112,31 +112,32 @@ namespace PathTracer
                 Alpha = 0.5f
             };
 
-            Material copper1 = new Material()
+            Material floot1 = new Material()
             {
-                Color = new Vector4(0.95f, 0.64f, 0.54f, 0.0f),
+                Color = new Vector4(0.8f),
                 Type = MaterialType.Metal,
-                Alpha = 0.1f
+                Alpha = 0.18f
             };
 
-            Material copper2 = new Material()
+            Material floot2 = new Material()
             {
-                Color = new Vector4(0.95f, 0.64f, 0.54f, 0.0f),
+                Color = new Vector4(0.8f),
                 Type = MaterialType.Metal,
-                Alpha = 0.2f
+                Alpha = 0.25f
             };
 
             this.scene = new Scene();
-
+            
             //this.scene.AddMesh("Assets/Mesh/floor.obj");
             this.scene.AddMesh("Assets/Mesh/light.obj");
+            
 
-            this.scene.GenerateTiledFoloor(copper1, copper2);
+            this.scene.GenerateTiledFoloor(floot1, floot2);
 
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < 50; i++)
             {
-                var mat = Matrix4x4.CreateScale(0.8f, Vector3.One * 0.5f) * Matrix4x4.CreateTranslation(-5 + i, 0, 0);
-                this.scene.AddMeshNormalized("Assets/Mesh/cube.obj", mat, alpha_mat(0.1f * i));
+                var mat = Matrix4x4.CreateTranslation((-25 + i) * 1.3f, 0, 0) * Matrix4x4.CreateScale(0.5f);
+                this.scene.AddMeshNormalized("Assets/Mesh/torus.obj", mat, alpha_mat(0.02f * i));
             }
         }
 

@@ -70,9 +70,9 @@ namespace PathTracer
             int i = this.GetMaterialIndex(a);
             int j = this.GetMaterialIndex(b);
 
-            for (int x = -50; x < 49; x++)
+            for (int x = -100; x < 99; x++)
             {
-                for (int y = -50; y < 49; y++)
+                for (int y = -100; y < 99; y++)
                 {
                     int mat = ((x & 1) ^ (y & 1)) == 0 ? i : j;
 

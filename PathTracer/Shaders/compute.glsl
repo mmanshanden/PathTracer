@@ -325,6 +325,11 @@ float smith_ggx_masking(vec3 l, vec3 v, vec3 n, float a2)
 
     float c = sqrt(a2 + (1.0 - a2) * ndotv * ndotv) + ndotv;
 
+    if (c == 0)
+    {
+        return 0;
+    }
+
     return 2.0 * ndotv / c;
 }
 
