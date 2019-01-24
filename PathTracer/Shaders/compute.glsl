@@ -90,7 +90,8 @@ struct Node
 };
 
 layout(rgba32f, binding=0) uniform image2D screen_buffer;
-layout(std140,  binding=1) uniform render_state
+
+layout(std140,  binding=0) uniform render_state
 {
     uint   frame;
     uint   samples;
@@ -99,9 +100,9 @@ layout(std140,  binding=1) uniform render_state
     vec4   sky_color;
 };
 
-layout(std430,  binding=2) buffer material_buffer { Material materials[]; };
-layout(std430,  binding=3) buffer triangle_buffer { Triangle triangles[]; };
-layout(std430,  binding=4) buffer node_buffer     { Node nodes[]; };
+layout(std430,  binding=0) buffer material_buffer { Material materials[]; };
+layout(std430,  binding=1) buffer triangle_buffer { Triangle triangles[]; };
+layout(std430,  binding=2) buffer node_buffer     { Node nodes[]; };
 
 
 void xor_shift(inout uint seed)

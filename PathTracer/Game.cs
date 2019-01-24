@@ -76,7 +76,7 @@ namespace PathTracer
 
             Random rng = new Random(4);
 
-            this.state = new Uniform<State>(1);
+            this.state = new Uniform<State>(0);
             this.state.Data.SkyColor = SkyColor;
 
             this.InitializeScene();
