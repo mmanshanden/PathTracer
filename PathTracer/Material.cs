@@ -24,6 +24,7 @@ namespace PathTracer
         Diffuse = 0,
         Emissive = 1,
         Mirror = 2,
-        Dielectric = 3
+        Dielectric = 3,
+        Metal = 4
     }
 }

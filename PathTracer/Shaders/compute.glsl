@@ -10,6 +10,7 @@
 #define MATERIAL_EMISSIVE 1
 #define MATERIAL_MIRROR 2
 #define MATERIAL_DIELECTRIC 3
+#define MATERIAL_METAL 4
 
 layout(local_size_x = 8, local_size_y = 8) in;
 
@@ -304,6 +305,101 @@ float pdf(const vec3 n, const vec3 r)
     return 1.0 / (2.0 * PI);
 }
 
+
+
+
+
+
+
+vec4 schlick3(vec3 ks, float r)
+{
+    return vec4(ks + (1.0 - ks) * pow(1.0 - r, 5), 0);
+}
+
+vec3 spherical_to_cartesian(const float theta, const float phi)
+{
+    return vec3(sin(theta) * cos(phi), cos(theta), sin(theta) * sin(phi));
+}
+
+float smith_ggx_shadowmasking(vec3 l, vec3 v, vec3 n, float a2)
+{
+    float ndotl = dot(n, l);
+    float ndotv = dot(n, v);
+
+    float a = ndotv * sqrt(a2 + (1.0 - a2) * ndotl * ndotl);
+    float b = ndotl * sqrt(a2 + (1.0 - a2) * ndotv * ndotv);
+
+    float denom = a + b;
+
+    if (denom == 0)
+    {
+        return 0;
+    }
+
+    return 2.0 * ndotv * ndotv / denom;
+}
+
+vec4 ImportanteSampleGgx(inout uint seed, vec3 n, vec3 v, const Material mat, out vec3 l)
+{
+    vec3 W = abs(n.x) > 0.9 ? vec3(0, 1, 0) : vec3(1, 0, 0);
+
+    vec3 N = n;
+    vec3 T = normalize(cross(N, W));
+    vec3 B = cross(N, T);
+
+    vec3 tangent_v = vec3(dot(v, T), dot(v, N), dot(v, B));
+    vec3 tangent_n = vec3(dot(n, T), dot(n, N), dot(n, B));
+
+    float a2 = mat.alpha * mat.alpha;
+
+    float r0 = random_float(seed);
+    float r1 = random_float(seed);
+
+    float theta = acos(sqrt((1.0 - r0) / (r0 * (a2 - 1.0) + 1.0)));
+    float phi   = (2.0 * PI) * r1;
+
+    vec3 tangent_m = spherical_to_cartesian(theta, phi);
+    vec3 tangent_l = 2.0 * dot(tangent_v, tangent_m) * tangent_m - tangent_v;
+
+    l = normalize(tangent_l.x * T + tangent_l.y * N + tangent_l.z * B);
+
+    float ndotl = dot(tangent_n, tangent_l);
+    float ldotm = dot(tangent_l, tangent_m);
+
+    if (ndotl > 0 && ldotm > 0)
+    {
+        vec4 f = schlick3(mat.color.xyz, ldotm);
+        float g = smith_ggx_shadowmasking(tangent_l, tangent_v, tangent_n, a2);
+
+        float vdotm = dot(tangent_v, tangent_m);
+        float ndotv = dot(tangent_n, tangent_v);
+        float ndotm = dot(tangent_n, tangent_m);
+
+        float denom = ndotv * ndotm;
+
+        if (denom == 0)
+        {
+            return vec4(0);
+        }
+
+        float weight = abs(vdotm) / denom;
+
+        return f * g * weight;
+    }
+    else
+    {
+        return vec4(0);
+    }
+
+    return vec4(tangent_v, 0);
+}
+
+
+
+
+
+
+
 vec4 Sample(Ray ray, inout uint seed)
 {
     vec4 throughput = vec4(1);
@@ -368,6 +464,11 @@ vec4 Sample(Ray ray, inout uint seed)
         {            
             new_dir    = diffuse_reflection(hit.normal, seed);
             throughput = brdf(mat) * throughput * dot(hit.normal, new_dir) / pdf(hit.normal, new_dir);
+        }
+
+        if (mat.type == MATERIAL_METAL)
+        {
+            throughput = throughput * ImportanteSampleGgx(seed, hit.normal, -ray.direction, mat, new_dir);
         }
 
         ray.origin     = hit.position + new_dir * EPSILON;
