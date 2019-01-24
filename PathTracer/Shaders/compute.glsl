@@ -318,10 +318,20 @@ vec3 spherical_to_cartesian(const float theta, const float phi)
     return vec3(sin(theta) * cos(phi), cos(theta), sin(theta) * sin(phi));
 }
 
+float smith_ggx_masking(vec3 l, vec3 v, vec3 n, float a2)
+{
+    float ndotl = clamp(dot(n, l), 0, 1);
+    float ndotv = clamp(dot(n, v), 0, 1);
+
+    float c = sqrt(a2 + (1.0 - a2) * ndotv * ndotv) + ndotv;
+
+    return 2.0 * ndotv / c;
+}
+
 float smith_ggx_shadowmasking(vec3 l, vec3 v, vec3 n, float a2)
 {
-    float ndotl = dot(n, l);
-    float ndotv = dot(n, v);
+    float ndotl = clamp(dot(n, l), 0, 1);
+    float ndotv = clamp(dot(n, v), 0, 1);
 
     float a = ndotv * sqrt(a2 + (1.0 - a2) * ndotl * ndotl);
     float b = ndotl * sqrt(a2 + (1.0 - a2) * ndotv * ndotv);
@@ -336,7 +346,91 @@ float smith_ggx_shadowmasking(vec3 l, vec3 v, vec3 n, float a2)
     return 2.0 * ndotl * ndotv / denom;
 }
 
-vec4 ImportanteSampleGgx(inout uint seed, vec3 n, vec3 v, const Material mat, out vec3 l)
+vec3 facetnormal(vec3 wo, float ax, float ay, inout uint seed)
+{
+    float u1 = random_float(seed);
+    float u2 = random_float(seed);
+
+    // Stretch the view vector so we are sampling as though
+    // roughness==1
+    vec3 v = normalize(vec3(wo.x * ax, wo.y * ay, wo.z));
+
+    // Build an orthonormal basis with v, t1, and t2
+    vec3 t1 = (v.z < 0.999f) ? normalize(cross(v, vec3(0, 0, 1))) : vec3(1, 0, 0);
+    vec3 t2 = cross(t1, v);
+
+    // Choose a point on a disk with each half of the disk weighted
+    // proportionally to its projection onto direction v
+    float a = 1.0f / (1.0f + v.z);
+    float r = sqrt(u1);
+    float phi = (u2 < a) ? (u2 / a) * PI : PI + (u2 - a) / (1.0f - a) * PI;
+    float p1 = r * cos(phi);
+    float p2 = r * sin(phi) * ((u2 < a) ? 1.0f : v.z);
+
+    // Calculate the normal in this stretched tangent space
+    vec3 n = p1 * t1 + p2 * t2 + sqrt(max(0.0f, 1.0f - p1 * p1 - p2 * p2)) * v;
+
+    // Unstretch and normalize the normal
+    return normalize(vec3(ax * n.x, ay * n.y, max(0.0f, n.z)));
+}
+
+vec3 SampleFacetNormal(inout uint seed, vec3 _v, float _a)
+{
+    float r1 = random_float(seed);
+    float r2 = random_float(seed);
+
+    vec3 v = normalize(vec3(_v.x * _a, _v.y, _v.z * _a));
+
+    vec3 t1 = (v.y < 0.999) ? normalize(cross(v, vec3(0,0,1))) : vec3(1,0,0);
+    vec3 t2 = cross(t1, v);
+
+    float a = 1.0 / (1.0 + v.y);
+    float r = sqrt(r1);
+    float phi = r2 < a ? (r2 / a) * PI : PI + (r2 - a) / (1.0 - a) * PI;
+
+    float p1 = r * cos(phi);
+    float p2 = r * sin(phi) * ((r2 < a) ? 1.0 : v.y);
+
+    vec3 n = p1 * t1 + p2 * t2 + sqrt(max(0.0, 1.0 - p1 * p1 - p2 * p2)) * v;
+
+    return normalize(vec3(a * n.x, max(0.0, n.y), a * n.z));
+}
+
+vec4 ImportanceSampleGgxVdn(inout uint seed, vec3 n, vec3 v, const Material mat, out vec3 l)
+{
+    vec3 W = abs(n.x) > 0.9 ? vec3(0, 1, 0) : vec3(1, 0, 0);
+
+    vec3 N = n;
+    vec3 T = normalize(cross(N, W));
+    vec3 B = cross(N, T);
+
+    vec3 tangent_v = vec3(dot(v, T), dot(v, B), dot(v, N));
+    vec3 tangent_n = vec3(dot(n, T), dot(n, B), dot(n, N));
+
+    float a2 = mat.alpha * mat.alpha;
+
+    vec3 tangent_m = facetnormal(tangent_v, mat.alpha, mat.alpha, seed);
+    vec3 tangent_l = reflect(-tangent_v, tangent_m);
+
+    l = (tangent_l.x * T + tangent_l.y * B + tangent_l.z * N);
+
+    float ndotl = dot(tangent_n, tangent_l);
+    float ldotm = dot(tangent_l, tangent_m);
+
+    vec4 f = vec4(schlick3(mat.color.xyz, tangent_m, tangent_l), 0);
+    float g1 = smith_ggx_masking(tangent_l, tangent_v, tangent_n, a2);
+    float g2 = smith_ggx_shadowmasking(tangent_l, tangent_v, tangent_n, a2);
+
+    if (g1 == 0)
+    {
+        return vec4(0);
+    }
+
+    return f * (g2 / g1);
+   
+}
+
+vec4 ImportanceSampleGgx(inout uint seed, vec3 n, vec3 v, const Material mat, out vec3 l)
 {
     vec3 W = abs(n.x) > 0.9 ? vec3(0, 1, 0) : vec3(1, 0, 0);
 
@@ -470,7 +564,8 @@ vec4 Sample(Ray ray, inout uint seed)
 
         if (mat.type == MATERIAL_METAL)
         {
-            throughput = throughput * ImportanteSampleGgx(seed, hit.normal, -ray.direction, mat, new_dir);
+            //throughput = throughput * ImportanceSampleGgx(seed, hit.normal, -ray.direction, mat, new_dir);
+            throughput = throughput * ImportanceSampleGgxVdn(seed, hit.normal, -ray.direction, mat, new_dir);
         }
 
         ray.origin     = hit.position + new_dir * EPSILON;

@@ -99,7 +99,7 @@ namespace PathTracer
             {
                 return new Material()
                 {
-                    Color = new Vector4(0.95f, 0.64f, 0.54f, 0.0f),
+                    Color = new Vector4(1.00f, 0.71f, 0.29f, 0.0f),
                     Type = MaterialType.Metal,
                     Alpha = alpha
                 };
@@ -107,9 +107,9 @@ namespace PathTracer
 
             Material green = new Material()
             {
-                Color = new Vector4(0.2f, 0.8f, 0.2f, 1),
+                Color = new Vector4(0.2f, 0.8f, 0.2f, 0.0f),
                 Type = MaterialType.Metal,
-                Alpha = 0.7f
+                Alpha = 0.5f
             };
 
             Material copper1 = new Material()
@@ -133,7 +133,11 @@ namespace PathTracer
 
             this.scene.GenerateTiledFoloor(copper1, copper2);
 
-            this.scene.AddMesh("Assets/Mesh/bunny.obj", green);
+            for (int i = 0; i < 10; i++)
+            {
+                var mat = Matrix4x4.CreateScale(0.8f, Vector3.One * 0.5f) * Matrix4x4.CreateTranslation(-5 + i, 0, 0);
+                this.scene.AddMeshNormalized("Assets/Mesh/cube.obj", mat, alpha_mat(0.1f * i));
+            }
         }
 
         public void Resize(int width, int height)
