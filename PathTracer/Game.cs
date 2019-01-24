@@ -107,7 +107,7 @@ namespace PathTracer
 
             Material green = new Material()
             {
-                Color = new Vector4(1, 1, 1, 1),
+                Color = new Vector4(0, 1, 0, 1),
                 Type = MaterialType.Diffuse,
                 Alpha = 10.0f
             };
@@ -121,12 +121,13 @@ namespace PathTracer
 
             this.scene = new Scene();
 
-            this.scene.AddMesh("Assets/Mesh/floor.obj", copper);
+            this.scene.AddMesh("Assets/Mesh/floor.obj");
             this.scene.AddMesh("Assets/Mesh/light.obj");
 
             this.scene.AddMeshNormalized("Assets/Mesh/cube.obj", Matrix4x4.CreateTranslation(0, 0, 0), alpha_mat(0.0f));
-            this.scene.AddMeshNormalized("Assets/Mesh/cube.obj", Matrix4x4.CreateTranslation(2, 0, 0), alpha_mat(0.25f));
-            this.scene.AddMeshNormalized("Assets/Mesh/cube.obj", Matrix4x4.CreateTranslation(4, 0, 0), alpha_mat(0.5f));
+            this.scene.AddMeshNormalized("Assets/Mesh/bunny.obj", Matrix4x4.CreateTranslation(1.5f, 0, 0), alpha_mat(0.15f));
+            this.scene.AddMeshNormalized("Assets/Mesh/cube.obj", Matrix4x4.CreateTranslation(3, 0, 0), alpha_mat(0.3f));
+            this.scene.AddMeshNormalized("Assets/Mesh/cube.obj", Matrix4x4.CreateTranslation(4.5f, 0, 0), alpha_mat(0.5f));
             this.scene.AddMeshNormalized("Assets/Mesh/cube.obj", Matrix4x4.CreateTranslation(6, 0, 0), alpha_mat(1f));
         }
 

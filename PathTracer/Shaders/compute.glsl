@@ -276,23 +276,19 @@ float schlick(const vec3 direction, const vec3 normal, const float n1, const flo
 
 vec3 diffuse_reflection(const vec3 normal, inout uint seed)
 {
+    // "random" unit vector
+    const vec3 axis = abs(normal.x) > 0.95 ? vec3(0, 1, 0) : vec3(1, 0, 0);
+
+    const vec3 u = normalize(cross(normal, axis));
+    const vec3 v = cross(u, normal);
+
     const float r0 = random_float(seed);
     const float r1 = random_float(seed);
 
-    const float r = sqrt(1.0 - r0 * r0);
+    const float r = sqrt(r0);
     const float theta = 2.0 * PI * r1;
 
-    const float x = cos(theta) * r;
-    const float y = sin(theta) * r;
-
-    const vec3 refl = vec3(x, y, r0);
-
-    if (dot(normal, refl) < 0)
-    {
-        return refl * -1;
-    }
-
-    return refl;
+    return r * cos(theta) * u + sqrt(1.0 - r0) * normal + r * sin(theta) * v;
 }
 
 vec4 brdf(const Material mat)
@@ -302,7 +298,7 @@ vec4 brdf(const Material mat)
 
 float pdf(const vec3 n, const vec3 r)
 {
-    return 1.0 / (2.0 * PI);
+    return dot(n, r) * INVPI;
 }
 
 
@@ -311,9 +307,10 @@ float pdf(const vec3 n, const vec3 r)
 
 
 
-vec4 schlick3(vec3 ks, float r)
+vec3 schlick3(vec3 ks, vec3 l, vec3 n)
 {
-    return vec4(ks + (1.0 - ks) * pow(1.0 - r, 5), 0);
+    const float ldotn = dot(l, n);
+    return ks + (1.0 - ks) * pow(1.0 - ldotn, 5);
 }
 
 vec3 spherical_to_cartesian(const float theta, const float phi)
@@ -336,7 +333,7 @@ float smith_ggx_shadowmasking(vec3 l, vec3 v, vec3 n, float a2)
         return 0;
     }
 
-    return 2.0 * ndotv * ndotv / denom;
+    return 2.0 * ndotl * ndotv / denom;
 }
 
 vec4 ImportanteSampleGgx(inout uint seed, vec3 n, vec3 v, const Material mat, out vec3 l)
@@ -359,16 +356,17 @@ vec4 ImportanteSampleGgx(inout uint seed, vec3 n, vec3 v, const Material mat, ou
     float phi   = (2.0 * PI) * r1;
 
     vec3 tangent_m = spherical_to_cartesian(theta, phi);
-    vec3 tangent_l = 2.0 * dot(tangent_v, tangent_m) * tangent_m - tangent_v;
+    vec3 tangent_l = reflect(-tangent_v, tangent_m);
 
-    l = normalize(tangent_l.x * T + tangent_l.y * N + tangent_l.z * B);
+    l = (tangent_l.x * T + tangent_l.y * N + tangent_l.z * B);
+    vec3 m = (tangent_m.x * T + tangent_m.y * N + tangent_m.z * B);
 
     float ndotl = dot(tangent_n, tangent_l);
     float ldotm = dot(tangent_l, tangent_m);
 
     if (ndotl > 0 && ldotm > 0)
     {
-        vec4 f = schlick3(mat.color.xyz, ldotm);
+        vec4 f = vec4(schlick3(mat.color.xyz, m, l), 0);
         float g = smith_ggx_shadowmasking(tangent_l, tangent_v, tangent_n, a2);
 
         float vdotm = dot(tangent_v, tangent_m);
@@ -463,7 +461,12 @@ vec4 Sample(Ray ray, inout uint seed)
         if (mat.type == MATERIAL_DIFFUSE)
         {            
             new_dir    = diffuse_reflection(hit.normal, seed);
-            throughput = brdf(mat) * throughput * dot(hit.normal, new_dir) / pdf(hit.normal, new_dir);
+            float pdf  = pdf(hit.normal, new_dir);
+
+            if (pdf > 0)
+            {
+                throughput = brdf(mat) * throughput * dot(hit.normal, new_dir) / pdf;
+            }
         }
 
         if (mat.type == MATERIAL_METAL)
