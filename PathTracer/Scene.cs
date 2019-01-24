@@ -65,6 +65,41 @@ namespace PathTracer
             this.AddMesh(path, false, transform, material);
         }
 
+        public void GenerateTiledFoloor(Material a, Material b)
+        {
+            int i = this.GetMaterialIndex(a);
+            int j = this.GetMaterialIndex(b);
+
+            for (int x = -50; x < 49; x++)
+            {
+                for (int y = -50; y < 49; y++)
+                {
+                    int mat = ((x & 1) ^ (y & 1)) == 0 ? i : j;
+
+                    Vertex v1 = new Vertex() { Position = new Vector4(x, 0, y, 0), Normal = new Vector4(0, 1, 0, 0) };
+                    Vertex v2 = new Vertex() { Position = new Vector4(x + 1, 0, y, 0), Normal = new Vector4(0, 1, 0, 0) };
+                    Vertex v3 = new Vertex() { Position = new Vector4(x + 1, 0, y + 1, 0), Normal = new Vector4(0, 1, 0, 0) };
+                    Vertex v4 = new Vertex() { Position = new Vector4(x, 0, y + 1, 0), Normal = new Vector4(0, 1, 0, 0) };
+
+                    this.accelerator.AddTriangle(new Triangle()
+                    {
+                        V1 = v1,
+                        V2 = v2,
+                        V3 = v3,
+                        Material = mat
+                    });
+
+                    this.accelerator.AddTriangle(new Triangle()
+                    {
+                        V1 = v3,
+                        V2 = v4,
+                        V3 = v1,
+                        Material = mat
+                    });
+                }
+            }
+        }
+
         private void AddMesh(string path, bool normalized, Matrix4x4 transform)
         {
             Console.WriteLine($"Loading mesh at path {path} ...");

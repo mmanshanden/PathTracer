@@ -359,14 +359,13 @@ vec4 ImportanteSampleGgx(inout uint seed, vec3 n, vec3 v, const Material mat, ou
     vec3 tangent_l = reflect(-tangent_v, tangent_m);
 
     l = (tangent_l.x * T + tangent_l.y * N + tangent_l.z * B);
-    vec3 m = (tangent_m.x * T + tangent_m.y * N + tangent_m.z * B);
-
+    
     float ndotl = dot(tangent_n, tangent_l);
     float ldotm = dot(tangent_l, tangent_m);
 
     if (ndotl > 0 && ldotm > 0)
     {
-        vec4 f = vec4(schlick3(mat.color.xyz, m, l), 0);
+        vec4 f = vec4(schlick3(mat.color.xyz, tangent_m, tangent_l), 0);
         float g = smith_ggx_shadowmasking(tangent_l, tangent_v, tangent_n, a2);
 
         float vdotm = dot(tangent_v, tangent_m);
