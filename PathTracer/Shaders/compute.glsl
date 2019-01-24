@@ -426,7 +426,7 @@ vec4 ImportanceSampleGgxVdn(inout uint seed, vec3 n, vec3 v, const Material mat,
     float g1 = smith_ggx_masking(tangent_l, tangent_v, tangent_n, a2);
     float g2 = smith_ggx_shadowmasking(tangent_l, tangent_v, tangent_n, a2);
 
-    if (g1 == 0)
+    if (g1 == 0 || g2 == 0)
     {
         return vec4(0);
     }
