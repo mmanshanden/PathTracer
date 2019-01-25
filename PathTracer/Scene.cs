@@ -76,10 +76,10 @@ namespace PathTracer
                 {
                     int mat = ((x & 1) ^ (y & 1)) == 0 ? i : j;
 
-                    Vertex v1 = new Vertex() { Position = new Vector4(x, 0, y, 0), Normal = new Vector4(0, 1, 0, 0) };
-                    Vertex v2 = new Vertex() { Position = new Vector4(x + 1, 0, y, 0), Normal = new Vector4(0, 1, 0, 0) };
-                    Vertex v3 = new Vertex() { Position = new Vector4(x + 1, 0, y + 1, 0), Normal = new Vector4(0, 1, 0, 0) };
-                    Vertex v4 = new Vertex() { Position = new Vector4(x, 0, y + 1, 0), Normal = new Vector4(0, 1, 0, 0) };
+                    Vertex v4 = new Vertex() { Position = new Vector4(x, 0, y, 0), Normal = new Vector4(0, 1, 0, 0) };
+                    Vertex v3 = new Vertex() { Position = new Vector4(x + 1, 0, y, 0), Normal = new Vector4(0, 1, 0, 0) };
+                    Vertex v2 = new Vertex() { Position = new Vector4(x + 1, 0, y + 1, 0), Normal = new Vector4(0, 1, 0, 0) };
+                    Vertex v1 = new Vertex() { Position = new Vector4(x, 0, y + 1, 0), Normal = new Vector4(0, 1, 0, 0) };
 
                     this.accelerator.AddTriangle(new Triangle()
                     {

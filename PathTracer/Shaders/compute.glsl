@@ -226,7 +226,7 @@ Hit intersect_scene(Ray ray)
     hit.distance = FLT_MAX;
     hit.material = -1;
 
-    int candidates[128];
+    int candidates[384];
     int c = 0;
 
     int stack[32];
@@ -247,7 +247,7 @@ Hit intersect_scene(Ray ray)
                 for (int i = n.leftFirst; i < n.leftFirst + n.count; i++)
                 {
                     candidates[c] = i;
-                    c = min(c + 1, 127);
+                    c = min(c + 1, 383);
                 }
             }
             else
@@ -351,6 +351,18 @@ float smith_ggx_shadowmasking(vec3 l, vec3 v, vec3 n, float a2)
     return 2.0 * ndotl * ndotv / denom;
 }
 
+// https://cdn2.unrealengine.com/Resources/files/2013SiggraphPresentationsNotes-26915738.pdf
+float g1_schlick(vec3 v, vec3 n, float a)
+{
+    float k = (a + 1) * (a + 1) * 0.125;
+    return dot(n, v) / (dot(n, v) * (1 - k) + k);
+}
+
+float g_schlick(vec3 l, vec3 v, vec3 n, float a)
+{
+    return g1_schlick(l, n, a) * g1_schlick(v, n, a);
+}
+
 vec3 facetnormal(vec3 wo, float ax, float ay, inout uint seed)
 {
     float u1 = random_float(seed);
@@ -417,22 +429,30 @@ vec4 ImportanceSampleGgxVdn(inout uint seed, vec3 n, vec3 v, const Material mat,
     vec3 tangent_m = facetnormal(tangent_v, mat.alpha, mat.alpha, seed);
     vec3 tangent_l = reflect(-tangent_v, tangent_m);
 
+    if (dot(tangent_l, tangent_m) < 0)
+    {
+        return vec4(0);
+    }
+
     l = (tangent_l.x * T + tangent_l.y * B + tangent_l.z * N);
 
     float ndotl = dot(tangent_n, tangent_l);
     float ldotm = dot(tangent_l, tangent_m);
 
     vec4 f = vec4(schlick3(mat.color.xyz, tangent_m, tangent_l), 0);
-    float g1 = smith_ggx_masking(tangent_l, tangent_v, tangent_n, a2);
-    float g2 = smith_ggx_shadowmasking(tangent_l, tangent_v, tangent_n, a2);
+    float g1 = smith_ggx_masking(tangent_l, tangent_v, tangent_m, a2);
+    float g2 = smith_ggx_shadowmasking(tangent_l, tangent_v, tangent_m, a2);
+
+    // alternative:
+    //float g1 = g1_schlick(tangent_v, tangent_m, mat.alpha);
+    //float g2 = g_schlick(tangent_l, tangent_v, tangent_m, mat.alpha);
 
     if (g1 == 0 || g2 == 0)
     {
         return vec4(0);
     }
 
-    return f * (g2 / g1);
-   
+    return f * (g2 / g1);   
 }
 
 vec4 ImportanceSampleGgx(inout uint seed, vec3 n, vec3 v, const Material mat, out vec3 l)
