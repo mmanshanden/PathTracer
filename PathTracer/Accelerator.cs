@@ -103,7 +103,11 @@ namespace PathTracer
             {
                 Bounds = this.nodes[index].Bounds,
                 LeftFirst = this.nodes.Count - 2,
-                Count = 0
+                // we store the split axis through a negative count:
+                // -1 : x
+                // -2 : y
+                // -3 : z
+                Count = this.nodes[index].Bounds.Domain() * -1 - 1
             };
 
             this.Subdivide(this.nodes[index].LeftFirst);

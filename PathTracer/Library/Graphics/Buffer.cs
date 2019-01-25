@@ -35,6 +35,32 @@ namespace PathTracer.Library.Graphics
             GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, this.binding, this.Handle);
         }
 
+        public void Allocate(int count)
+        {
+            this.Bind();
+
+            GL.BufferData(
+                    BufferTarget.ShaderStorageBuffer,
+                    this.stride * count,
+                    this.data,
+                    BufferUsageHint.StaticRead);
+
+            this.allocated = this.count;
+        }
+
+        public void CopyFromDevice()
+        {
+            this.data = new T[this.allocated];
+
+            this.Bind();
+
+            GL.GetBufferSubData(
+                BufferTarget.ShaderStorageBuffer,
+                IntPtr.Zero,
+                this.stride * this.allocated,
+                this.data);
+        }
+
         public void CopyToDevice()
         {
             if (this.count == 0)

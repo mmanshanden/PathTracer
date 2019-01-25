@@ -54,5 +54,11 @@ namespace PathTracer.Library.Extensions
         {
             return new Vector3(vector.X, vector.Y, vector.Z);
         }
+
+        public static uint Pack(this Vector3 normal)
+        {
+            float f = 65535.0f / MathF.Sqrt(8.0f * normal.Z + 8.0f);
+            return (uint)(normal.X * f + 32767.0f) + ((uint)(normal.Y * 32767.0f) << 16);
+        }
     }
 }

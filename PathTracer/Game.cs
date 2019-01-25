@@ -12,7 +12,8 @@ namespace PathTracer
         const float MOVESPEED = 4.5f;
         const float TURNSPEED = 1.0f;
 
-        private static readonly Vector4 SkyColor = Vector4.Zero; // new Vector4(142.0f / 255.0f, 178.0f / 255.0f, 237.0f / 255.0f, 1);
+        // private static readonly Vector4 SkyColor = Vector4.Zero;
+        private static readonly Vector4 SkyColor = new Vector4(142.0f / 255.0f, 178.0f / 255.0f, 237.0f / 255.0f, 1);
 
         private ShaderProgram quad;
         private ShaderProgram compute;
@@ -100,7 +101,14 @@ namespace PathTracer
             this.scene.AddMesh("Assets/Mesh/floor.obj");
             this.scene.AddMesh("Assets/Mesh/light.obj");
 
-            this.scene.AddMeshNormalized("Assets/Mesh/bunny.obj", glass);
+            for (int x = -1; x <= 1; x++)
+            {
+                for (int y = -1; y <= 1; y++)
+                {
+                    var mat = Matrix4x4.CreateScale(0.8f) * Matrix4x4.CreateTranslation(x, 0, y);
+                    this.scene.AddMeshNormalized("Assets/Mesh/bunny.obj", mat, glass);
+                }
+            }
         }
 
         public void Resize(int width, int height)
