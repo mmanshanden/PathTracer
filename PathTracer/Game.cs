@@ -134,16 +134,16 @@ namespace PathTracer
 
             this.scene.GenerateTiledFoloor(floot1, floot2);
 
-            for (int i = 0; i < 50; i++)
+            for (int i = 0; i < 10; i++)
             {
-                var mat = Matrix4x4.CreateTranslation((-25 + i) * 1.3f, 0, 0) * Matrix4x4.CreateScale(0.5f);
-                this.scene.AddMeshNormalized("Assets/Mesh/torus.obj", mat, alpha_mat(0.02f * i));
+                var mat = Matrix4x4.CreateTranslation((-5 + i) * 1.3f, 0, 0) * Matrix4x4.CreateScale(0.5f);
+                this.scene.AddMeshNormalized("Assets/Mesh/torus.obj", mat, alpha_mat(0.01f * i));
             }
 
-            for (int i = 0; i < 50; i++)
+            for (int i = 0; i < 10; i++)
             {
-                var mat = Matrix4x4.CreateTranslation((-25 + i) * 1.3f, 0, 2) * Matrix4x4.CreateScale(0.5f);
-                this.scene.AddMeshNormalized("Assets/Mesh/bunny.obj", mat, alpha_mat(0.02f * i));
+                var mat = Matrix4x4.CreateTranslation((-5 + i) * 1.3f, 0, 2) * Matrix4x4.CreateScale(0.5f);
+                this.scene.AddMeshNormalized("Assets/Mesh/bunny.obj", mat, alpha_mat(0.1f * i));
             }
         }
 

@@ -309,13 +309,27 @@ float pdf(const vec3 n, const vec3 r)
 
 vec3 schlick3(vec3 ks, vec3 l, vec3 n)
 {
-    const float ldotn = dot(l, n);
+    const float ldotn = clamp(dot(l, n), 0, 1);
     return ks + (1.0 - ks) * pow(1.0 - ldotn, 5);
 }
 
 vec3 spherical_to_cartesian(const float theta, const float phi)
 {
     return vec3(sin(theta) * cos(phi), cos(theta), sin(theta) * sin(phi));
+}
+
+void isnan_v(vec3 v)
+{
+    if (isnan(v.x) || isnan(v.y) || isnan(v.z))
+    {
+        for (int x = 0; x < 10; x++)
+        {
+            for (int y = 0; y < 10; y++)
+            {
+                update_screen_buffer(ivec2(x, y), vec4(4000000000,0,0,0));
+            }
+        }
+    }
 }
 
 float smith_ggx_masking(vec3 l, vec3 v, vec3 n, float a2)
@@ -325,7 +339,7 @@ float smith_ggx_masking(vec3 l, vec3 v, vec3 n, float a2)
 
     float c = sqrt(a2 + (1.0 - a2) * ndotv * ndotv) + ndotv;
 
-    if (c == 0)
+    if (c < 0.000001)
     {
         return 0;
     }
@@ -343,7 +357,7 @@ float smith_ggx_shadowmasking(vec3 l, vec3 v, vec3 n, float a2)
 
     float denom = a + b;
 
-    if (denom == 0)
+    if (denom < 0.00001)
     {
         return 0;
     }
@@ -429,6 +443,7 @@ vec4 ImportanceSampleGgxVdn(inout uint seed, vec3 n, vec3 v, const Material mat,
     vec3 tangent_m = facetnormal(tangent_v, mat.alpha, mat.alpha, seed);
     vec3 tangent_l = reflect(-tangent_v, tangent_m);
 
+
     if (dot(tangent_l, tangent_m) < 0)
     {
         return vec4(0);
@@ -440,14 +455,18 @@ vec4 ImportanceSampleGgxVdn(inout uint seed, vec3 n, vec3 v, const Material mat,
     float ldotm = dot(tangent_l, tangent_m);
 
     vec4 f = vec4(schlick3(mat.color.xyz, tangent_m, tangent_l), 0);
-    float g1 = smith_ggx_masking(tangent_l, tangent_v, tangent_m, a2);
-    float g2 = smith_ggx_shadowmasking(tangent_l, tangent_v, tangent_m, a2);
+
+    isnan_v(f.xyz);
+    
+
+    float g1 = smith_ggx_masking(tangent_l, tangent_v, tangent_n, a2);
+    float g2 = smith_ggx_shadowmasking(tangent_l, tangent_v, tangent_n, a2);
 
     // alternative:
     //float g1 = g1_schlick(tangent_v, tangent_m, mat.alpha);
     //float g2 = g_schlick(tangent_l, tangent_v, tangent_m, mat.alpha);
 
-    if (g1 == 0 || g2 == 0)
+    if (g1 < 0.00001)
     {
         return vec4(0);
     }
@@ -590,7 +609,11 @@ vec4 Sample(Ray ray, inout uint seed)
         if (mat.type == MATERIAL_METAL)
         {
             //throughput = throughput * ImportanceSampleGgx(seed, hit.normal, -ray.direction, mat, new_dir);
-            throughput = throughput * ImportanceSampleGgxVdn(seed, hit.normal, -ray.direction, mat, new_dir);
+            vec4 s = ImportanceSampleGgxVdn(seed, hit.normal, -ray.direction, mat, new_dir);
+            s.w = 0;
+            throughput = throughput * s;
+            
+
         }
 
         ray.origin     = hit.position + new_dir * EPSILON;
