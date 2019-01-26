@@ -58,13 +58,12 @@ namespace PathTracer
             this.Set(this.position, this.position + this.forward + this.right * distance);
         }
 
-        public void SetUniform(Uniform<State> state)
+        public void SetUniform(Uniform<State.FrameState> state)
         {
             state.Data.Camera.Position = this.position;
             state.Data.Camera.Forward = this.forward;
             state.Data.Camera.Right = this.right;
             state.Data.Camera.Up = this.up;
-            state.Data.Camera.FocalDistance = this.focal;
         }
     }
 }

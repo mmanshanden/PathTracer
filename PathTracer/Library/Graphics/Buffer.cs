@@ -37,15 +37,24 @@ namespace PathTracer.Library.Graphics
 
         public void Allocate(int count)
         {
+            if (count < this.allocated)
+            {
+                return;
+            }
+
             this.Bind();
+
+            int size = this.stride * count / 1024;
+            string type = this.data[0].GetType().Name;
+            Console.WriteLine($"Allocating {size}K for Buffer<{type}> (binding={this.binding}, stride={this.stride}, count={this.count})");
 
             GL.BufferData(
                     BufferTarget.ShaderStorageBuffer,
                     this.stride * count,
-                    this.data,
+                    IntPtr.Zero,
                     BufferUsageHint.StaticRead);
 
-            this.allocated = this.count;
+            this.allocated = count;
         }
 
         public void CopyFromDevice()
@@ -89,7 +98,7 @@ namespace PathTracer.Library.Graphics
                     BufferTarget.ShaderStorageBuffer,
                     this.stride * this.count,
                     this.data,
-                    BufferUsageHint.StaticRead);
+                    BufferUsageHint.DynamicDraw);
 
                 this.allocated = this.count;
             }

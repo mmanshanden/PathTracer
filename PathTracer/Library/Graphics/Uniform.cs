@@ -19,11 +19,11 @@ namespace PathTracer.Library.Graphics
         {
             this.binding = binding;
             this.stride = Marshal.SizeOf<T>();
-
             this.data = default(T);
 
             GL.BindBufferBase(BufferRangeTarget.UniformBuffer, this.binding, this.Handle);
 
+            this.Bind();
             GL.BufferData(
                 BufferTarget.UniformBuffer, 
                 this.stride, 
@@ -35,6 +35,8 @@ namespace PathTracer.Library.Graphics
 
         public void CopyToDevice()
         {
+            this.Bind();
+
             GL.BufferSubData(
                 BufferTarget.UniformBuffer, 
                 IntPtr.Zero, 

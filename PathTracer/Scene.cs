@@ -17,9 +17,9 @@ namespace PathTracer
 
         public Scene()
         {
-            this.materials = new Buffer<Material>(0);
-            this.triangles = new Buffer<Triangle>(1);
-            this.nodes = new Buffer<Node>(2);
+            this.materials = new Buffer<Material>(10);
+            this.triangles = new Buffer<Triangle>(11);
+            this.nodes = new Buffer<Node>(12);
 
             this.accelerator = new Accelerator(this.triangles, this.nodes);
             this.lut = new Dictionary<Material, int>();

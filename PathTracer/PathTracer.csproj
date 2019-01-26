@@ -34,6 +34,15 @@
     <None Update="Assets\Mesh\cube.obj">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="Shaders\Wavefront\shade.glsl">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Shaders\Wavefront\extend.glsl">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Shaders\Wavefront\generate.glsl">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Shaders\Quad\vertex.glsl">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

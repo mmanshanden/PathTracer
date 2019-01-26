@@ -389,7 +389,7 @@ vec4 Sample(Ray ray, inout uint seed)
         if (mat.type == MATERIAL_DIFFUSE)
         {            
             new_dir    = diffuse_reflection(hit.normal, seed);
-            throughput = brdf(mat) * throughput * dot(hit.normal, new_dir) / pdf(hit.normal, new_dir);
+            throughput = throughput * mat.color; //brdf(mat) * throughput * dot(hit.normal, new_dir) / pdf(hit.normal, new_dir);
         }
 
         ray.origin     = hit.position + new_dir * EPSILON;
