@@ -10,9 +10,7 @@ namespace PathTracer
         private readonly Buffer<Vector4> rayDirection;
         private readonly Buffer<Vector4> rayOrigin;
         private readonly Buffer<Vector4> sampleThroughput;
-        private readonly Buffer<Vector4> sampleEmittance;
         private readonly Buffer<Vector4> intersection;
-        private readonly Buffer<int> queue;
 
         private readonly ShaderProgram generate;
         private readonly ShaderProgram extend;
@@ -27,9 +25,7 @@ namespace PathTracer
             this.rayDirection       = new Buffer<Vector4>(0);
             this.rayOrigin          = new Buffer<Vector4>(1);
             this.sampleThroughput   = new Buffer<Vector4>(2);
-            this.sampleEmittance    = new Buffer<Vector4>(3);
-            this.intersection       = new Buffer<Vector4>(4);
-            this.queue              = new Buffer<int>(5);
+            this.intersection       = new Buffer<Vector4>(3);
 
             this.generate = new ShaderProgram(
                 ShaderArgument.Load(ShaderType.ComputeShader, "Shaders/Wavefront/generate.glsl"));
@@ -48,7 +44,9 @@ namespace PathTracer
             uint n = this.pixels;
             this.InvokeShader(this.generate, n);
 
-            for (int i = 0; i < 10; i++)
+            int i;
+
+            for (i = 0; i < 20 && n > 50; i++)
             {
                 this.atomic.Reset();
                 
@@ -57,6 +55,8 @@ namespace PathTracer
 
                 n = this.atomic.Read();
             }
+
+            Console.WriteLine(i);
         }
 
         private void InvokeShader(ShaderProgram program, uint n)
@@ -65,7 +65,6 @@ namespace PathTracer
 
             program.Use();
             GL.DispatchCompute(r, 1, 1);
-            GL.MemoryBarrier(MemoryBarrierFlags.AllBarrierBits);
         }
 
         public void Allocate(int n)
@@ -73,9 +72,7 @@ namespace PathTracer
             this.rayOrigin.Allocate(n);
             this.rayDirection.Allocate(n);
             this.sampleThroughput.Allocate(n);
-            this.sampleEmittance.Allocate(n);
             this.intersection.Allocate(n);
-            this.queue.Allocate(n);
 
             this.pixels = (uint)n;
         }

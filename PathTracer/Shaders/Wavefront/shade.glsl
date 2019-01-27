@@ -82,9 +82,7 @@ layout(         binding=0) uniform atomic_uint atomic;
 layout(std430,  binding=0) buffer              buffer_ray_direction      { vec4  __d[]; };
 layout(std430,  binding=1) buffer              buffer_ray_origin         { vec4  __o[]; };
 layout(std430,  binding=2) buffer              buffer_sample_throughput  { vec4  __t[]; };
-layout(std430,  binding=3) buffer              buffer_sample_emittance   { vec4  __e[]; };
-layout(std430,  binding=4) buffer              buffer_intersection       { uvec4 __h[]; };
-layout(std430,  binding=5) buffer              buffer_queue              { int   __q[]; };
+layout(std430,  binding=3) buffer              buffer_intersection       { uvec4 __h[]; };
 
 void updateScreenBuffer(const uint pixelidx, const vec4 color)
 {
@@ -260,12 +258,20 @@ void main()
         throughput = throughput * brdf * dot(bounce, hit.normal) / pdf;
     }
 
+    float roulette = max(max(throughput.x, throughput.y), throughput.z);
+
+    if (randomFloat(seed) > roulette)
+    {
+        updateScreenBuffer(ray.pixelidx, vec4(0));
+        return;
+    }
+
+    throughput = throughput * (1.0 / roulette);
+
     ray.origin     = ray.origin + ray.direction * hit.distance + bounce * EPSILON;
     ray.direction  = bounce;
     ray.reciprocal = 1.0 / bounce;
-
-    memoryBarrier();
-
+    
     uint q = atomicCounterIncrement(atomic);
 
     storeRay(q, ray);

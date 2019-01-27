@@ -82,9 +82,7 @@ layout(         binding=0) uniform atomic_uint atomic;
 layout(std430,  binding=0) buffer              buffer_ray_direction      { vec4  __d[]; };
 layout(std430,  binding=1) buffer              buffer_ray_origin         { vec4  __o[]; };
 layout(std430,  binding=2) buffer              buffer_sample_throughput  { vec4  __t[]; };
-layout(std430,  binding=3) buffer              buffer_sample_emittance   { vec4  __e[]; };
-layout(std430,  binding=4) buffer              buffer_intersection       { uvec4 __h[]; };
-layout(std430,  binding=5) buffer              buffer_queue              { int   __q[]; };
+layout(std430,  binding=3) buffer              buffer_intersection       { uvec4 __h[]; };
 
 void updateScreenBuffer(const uint pixelidx, const vec4 color)
 {
