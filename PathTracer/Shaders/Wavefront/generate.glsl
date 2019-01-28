@@ -52,8 +52,10 @@ struct Hit
 
 struct Camera
 {
+    vec4 p1;
+    vec4 p2;
+    vec4 p3;
     vec4 position;
-    vec4 forward;
     vec4 right;
     vec4 up;
 };
@@ -74,6 +76,7 @@ layout(std140, binding=1) uniform frame_state
 {
     uint   frames;
     uint   samples;
+    float  focal_distance;
     Camera camera;
 };
 
@@ -131,20 +134,25 @@ void storeHit(uint index, Hit hit)
 
 Ray generateRay(const ivec2 screen_pos, inout uint seed)
 {
-    const float x = (randomFloat(seed) + screen_pos.x) / float(screen.width) - 0.5;
-    const float y = (randomFloat(seed) + screen_pos.y) / float(screen.height) - 0.5;
+    const float r0 = randomFloat(seed);
+    const float r1 = randomFloat(seed);
+    const float r2 = randomFloat(seed) - 0.5;
+    const float r3 = randomFloat(seed) - 0.5;
+
+    const float x = (screen_pos.x + r0) / float(screen.width);
+    const float y = (screen.height - screen_pos.y + r1) / float(screen.height);
 
     const float ar = float(screen.width) / screen.height;
 
-    const vec3 c = camera.forward.xyz * 1.0;
-    const vec3 d = normalize(c + camera.right.xyz * x * ar + camera.up.xyz * y);
+    const vec4 t = camera.p1 + x * (camera.p2 - camera.p1) + y * (camera.p3 - camera.p1);
+    const vec4 p = camera.position + 0.05 * (r2 * camera.right + r3 * camera.up);
 
-    Ray r;
-    r.direction  = d;
-    r.origin     = camera.position.xyz;
-    r.reciprocal = 1.0 / d;
-    r.pixelidx   = screen_pos.x + screen_pos.y * screen.width;
-    return r;
+    Ray ray;
+    ray.direction  = normalize(t - p).xyz;
+    ray.origin     = p.xyz;
+    ray.reciprocal = 1.0 / ray.direction;
+    ray.pixelidx   = screen_pos.x + screen_pos.y * screen.width;
+    return ray;
 }
 
 

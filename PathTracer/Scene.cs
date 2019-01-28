@@ -32,6 +32,18 @@ namespace PathTracer
             this.lut.Clear();
         }
 
+        public Intersection Intersect(ref Ray ray)
+        {
+            Intersection i = new Intersection()
+            {
+                Distance = float.PositiveInfinity
+            };
+
+            this.accelerator.Intersect(ref ray, ref i);
+
+            return i;
+        }
+
         public void AddMeshNormalized(string path)
         {
             this.AddMesh(path, true, Matrix4x4.Identity);
@@ -83,10 +95,10 @@ namespace PathTracer
                 {
                     int mat = ((x & 1) ^ (y & 1)) == 0 ? i : j;
 
-                    Vertex v4 = new Vertex() { Position = new Vector4(x, 0, y, 0), Normal = new Vector4(0, 1, 0, 0) };
-                    Vertex v3 = new Vertex() { Position = new Vector4(x + 1, 0, y, 0), Normal = new Vector4(0, 1, 0, 0) };
-                    Vertex v2 = new Vertex() { Position = new Vector4(x + 1, 0, y + 1, 0), Normal = new Vector4(0, 1, 0, 0) };
-                    Vertex v1 = new Vertex() { Position = new Vector4(x, 0, y + 1, 0), Normal = new Vector4(0, 1, 0, 0) };
+                    Vertex v4 = new Vertex() { Position = new Vector3(x, 0, y),          Normal = new Vector3(0, 1, 0) };
+                    Vertex v3 = new Vertex() { Position = new Vector3(x + 1, 0, y),      Normal = new Vector3(0, 1, 0) };
+                    Vertex v2 = new Vertex() { Position = new Vector3(x + 1, 0, y + 1),  Normal = new Vector3(0, 1, 0) };
+                    Vertex v1 = new Vertex() { Position = new Vector3(x, 0, y + 1),      Normal = new Vector3(0, 1, 0) };
 
                     this.accelerator.AddTriangle(new Triangle()
                     {
@@ -152,9 +164,9 @@ namespace PathTracer
                 {
                     this.accelerator.AddTriangle(new Triangle()
                     {
-                        V1 = new Vertex() { Position = new Vector4(vertices[0].Position, 0), Normal = new Vector4(vertices[0].Normal, 0) },
-                        V2 = new Vertex() { Position = new Vector4(vertices[1].Position, 0), Normal = new Vector4(vertices[1].Normal, 0) },
-                        V3 = new Vertex() { Position = new Vector4(vertices[2].Position, 0), Normal = new Vector4(vertices[2].Normal, 0) },
+                        V1 = new Vertex() { Position = vertices[0].Position, Normal = vertices[0].Normal },
+                        V2 = new Vertex() { Position = vertices[1].Position, Normal = vertices[1].Normal },
+                        V3 = new Vertex() { Position = vertices[2].Position, Normal = vertices[2].Normal },
                         Material = material
                     });
                 }

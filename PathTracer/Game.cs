@@ -43,8 +43,10 @@ namespace PathTracer
                 ShaderArgument.Load(ShaderType.FragmentShader, "Shaders/Quad/fragment.glsl"));
 
             this.screen = new Image(1, 1);
-            this.camera = new Camera(new Vector3(0, 2, 15), Vector3.UnitY * 3);
+
             this.scene = new Scene();
+            this.camera = new Camera(this.window, this.scene);
+            this.camera.Set(new Vector3(0, 2, 15), Vector3.UnitY * 3); ;
 
             this.renderState = new Uniform<State.RenderState>(0);
             this.frameState = new Uniform<State.FrameState>(1);
@@ -153,71 +155,18 @@ namespace PathTracer
 
         public void Update(float dt, KeyboardState keystate)
         {
-            if (keystate.IsKeyDown(Key.W))
-            {
-                this.frameState.Data.Samples = 0;
-                this.camera.MoveForward(MOVESPEED * dt);
-            }
+            bool changed = this.camera.HandleInput(keystate);
 
-            if (keystate.IsKeyDown(Key.S))
+            if (changed)
             {
                 this.frameState.Data.Samples = 0;
-                this.camera.MoveForward(-MOVESPEED * dt);
-            }
-
-            if (keystate.IsKeyDown(Key.A))
-            {
-                this.frameState.Data.Samples = 0;
-                this.camera.MoveRight(-MOVESPEED * dt);
-            }
-
-            if (keystate.IsKeyDown(Key.D))
-            {
-                this.frameState.Data.Samples = 0;
-                this.camera.MoveRight(MOVESPEED * dt);
-            }
-
-            if (keystate.IsKeyDown(Key.Q))
-            {
-                this.frameState.Data.Samples = 0;
-                this.camera.MoveUp(MOVESPEED * dt);
-            }
-
-            if (keystate.IsKeyDown(Key.E))
-            {
-                this.frameState.Data.Samples = 0;
-                this.camera.MoveUp(-MOVESPEED * dt);
-            }
-
-            if (keystate.IsKeyDown(Key.Left))
-            {
-                this.frameState.Data.Samples = 0;
-                this.camera.RotateRight(-TURNSPEED * dt);
-            }
-
-            if (keystate.IsKeyDown(Key.Right))
-            {
-                this.frameState.Data.Samples = 0;
-                this.camera.RotateRight(TURNSPEED * dt);
-            }
-
-            if (keystate.IsKeyDown(Key.Up))
-            {
-                this.frameState.Data.Samples = 0;
-                this.camera.RotateUp(TURNSPEED * dt);
-            }
-
-            if (keystate.IsKeyDown(Key.Down))
-            {
-                this.frameState.Data.Samples = 0;
-                this.camera.RotateUp(-TURNSPEED * dt);
             }
 
             if (keystate.IsKeyDown(Key.R))
             {
                 this.frameState.Data.Samples = 0;
                 this.window.ClientSize = new OpenTK.Size(512, 512);
-                this.camera = new Camera(new Vector3(0, 2, 15), Vector3.UnitY * 3);
+                this.camera.Set(new Vector3(0, 2, 15), Vector3.UnitY * 3);
             }
 
             if (keystate.IsKeyDown(Key.P))

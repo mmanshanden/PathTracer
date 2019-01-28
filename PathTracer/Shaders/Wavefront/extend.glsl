@@ -74,6 +74,7 @@ layout(std140, binding=1) uniform frame_state
 {
     uint   frames;
     uint   samples;
+    float  focal_distance;
     Camera camera;
 };
 

@@ -48,6 +48,36 @@ namespace PathTracer
             return 2.0f * (d.X * d.Y + d.X * d.Z + d.Y * d.Z);
         }
 
+        public bool Intersect(ref Ray ray)
+        {
+            float t1 = (this.Min.X - ray.Origin.X) * ray.Inverse.X;
+            float t2 = (this.Max.X - ray.Origin.X) * ray.Inverse.X;
+            float t3 = (this.Min.Y - ray.Origin.Y) * ray.Inverse.Y;
+            float t4 = (this.Max.Y - ray.Origin.Y) * ray.Inverse.Y;
+            float t5 = (this.Min.Z - ray.Origin.Z) * ray.Inverse.Z;
+            float t6 = (this.Max.Z - ray.Origin.Z) * ray.Inverse.Z;
+
+            float tmin = MathF.Max(MathF.Max(MathF.Min(t1, t2), MathF.Min(t3, t4)), MathF.Min(t5, t6));
+            float tmax = MathF.Min(MathF.Min(MathF.Max(t1, t2), MathF.Max(t3, t4)), MathF.Max(t5, t6));
+
+            return (tmax > 0.0f && tmin < tmax);
+        }
+
+        public bool Intersect(ref Ray ray, out float tmin, out float tmax)
+        {
+            float t1 = (this.Min.X - ray.Origin.X) * ray.Inverse.X;
+            float t2 = (this.Max.X - ray.Origin.X) * ray.Inverse.X;
+            float t3 = (this.Min.Y - ray.Origin.Y) * ray.Inverse.Y;
+            float t4 = (this.Max.Y - ray.Origin.Y) * ray.Inverse.Y;
+            float t5 = (this.Min.Z - ray.Origin.Z) * ray.Inverse.Z;
+            float t6 = (this.Max.Z - ray.Origin.Z) * ray.Inverse.Z;
+
+            tmin = MathF.Max(MathF.Max(MathF.Min(t1, t2), MathF.Min(t3, t4)), MathF.Min(t5, t6));
+            tmax = MathF.Min(MathF.Min(MathF.Max(t1, t2), MathF.Max(t3, t4)), MathF.Max(t5, t6));
+
+            return (tmax > 0.0f && tmin < tmax);
+        }
+
         public static Box Union(Box a, Box b)
         {
             return new Box()
@@ -66,8 +96,8 @@ namespace PathTracer
         {
             return new Box()
             {
-                Max = Vector4.Max(Vector4.Max(a.Position, b.Position), c.Position).ToVector3() + new Vector3(0.00001f),
-                Min = Vector4.Min(Vector4.Min(a.Position, b.Position), c.Position).ToVector3() - new Vector3(0.00001f),
+                Max = Vector3.Max(Vector3.Max(a.Position, b.Position), c.Position) + new Vector3(0.00001f),
+                Min = Vector3.Min(Vector3.Min(a.Position, b.Position), c.Position) - new Vector3(0.00001f),
             };
         }
     }

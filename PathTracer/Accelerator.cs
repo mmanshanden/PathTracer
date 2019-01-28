@@ -48,6 +48,68 @@ namespace PathTracer
             });
         }
 
+        public void Intersect(ref Ray ray, ref Intersection i)
+        {
+            if (this.nodes.Count == 0)
+            {
+                return;
+            }
+
+            if (!this.nodes[0].Bounds.Intersect(ref ray))
+            {
+                return;
+            }
+
+            Stack<int> stack = new Stack<int>();
+            stack.Push(0);
+
+            while (stack.Count > 0)
+            {
+                ref Node node = ref this.nodes.GetReference(stack.Pop());
+
+                if (node.Count > 0)
+                {
+                    int to = node.LeftFirst + node.Count;
+
+                    for (int j = node.LeftFirst; j < to; j++)
+                    {
+                        this.triangles[j].Intersect(ref ray, ref i);
+                    }
+                }
+                else
+                {
+                    bool lhit = this.nodes[node.LeftFirst].Bounds.Intersect(ref ray, out float lt, out _);
+                    bool rhit = this.nodes[node.LeftFirst + 1].Bounds.Intersect(ref ray, out float rt, out _);
+
+                    if (lhit && rhit)
+                    {
+                        if (lt < rt && lt < i.Distance)
+                        {
+                            stack.Push(node.LeftFirst);
+                            stack.Push(node.LeftFirst + 1);
+                        }
+                        else if (rt < i.Distance)
+                        {
+                            stack.Push(node.LeftFirst + 1);
+                            stack.Push(node.LeftFirst);
+                        }
+                    }
+                    else
+                    {
+                        if (lhit)
+                        {
+                            stack.Push(node.LeftFirst);
+                        }
+                        else if (rhit)
+                        {
+                            stack.Push(node.LeftFirst + 1);
+                        }
+                    }
+                }
+
+            }
+        }
+
         public void Build()
         {
             Console.WriteLine($"Building bvh containing {this.primitives.Count} primitives ...");
