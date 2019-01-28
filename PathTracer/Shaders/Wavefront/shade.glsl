@@ -78,11 +78,11 @@ layout(std140, binding=1) uniform frame_state
 };
 
 layout(rgba32f, binding=0) uniform image2D     screen_buffer;
-layout(std430,  binding=0) buffer              buffer_ray_direction      { vec4  __d[]; };
-layout(std430,  binding=1) buffer              buffer_ray_origin         { vec4  __o[]; };
-layout(std430,  binding=2) buffer              buffer_sample_throughput  { vec4  __t[]; };
-layout(std430,  binding=3) buffer              buffer_intersection       { uvec4 __h[]; };
-layout(std430,  binding=4) buffer              buffer_atomics            { uint  __q; uint __p; };
+layout(std430,  binding=0) buffer              buffer_ray_direction      { vec4  _d[]; };
+layout(std430,  binding=1) buffer              buffer_ray_origin         { vec4  _o[]; };
+layout(std430,  binding=2) buffer              buffer_sample_throughput  { vec4  _t[]; };
+layout(std430,  binding=3) buffer              buffer_intersection       { uvec4 _h[]; };
+layout(std430,  binding=4) buffer              buffer_atomics            { uint  _q; uint _p; };
 
 
 void updateScreenBuffer(const uint pixelidx, const vec4 color)
@@ -97,26 +97,26 @@ void updateScreenBuffer(const uint pixelidx, const vec4 color)
 Ray getRay(uint index)
 {
     Ray ray;
-    ray.origin     = __o[index].xyz;
-    ray.direction  = __d[index].xyz;
+    ray.origin     = _o[index].xyz;
+    ray.direction  = _d[index].xyz;
     ray.reciprocal = 1.0 / ray.direction;
-    ray.pixelidx   = uint(__o[index].w);
+    ray.pixelidx   = uint(_o[index].w);
 
     return ray;
 }
 
 void storeRay(uint index, Ray ray)
 {
-    __o[index] = vec4(ray.origin, ray.pixelidx);
-    __d[index] = vec4(ray.direction, 0);
+    _o[index] = vec4(ray.origin, ray.pixelidx);
+    _d[index] = vec4(ray.direction, 0);
 }
 
 Hit getHit(uint index)
 {
     Hit hit;
-    hit.distance = uintBitsToFloat(__h[index].x);
-    hit.normal   = unpackNormal(__h[index].y);
-    hit.material = int(__h[index].z) - 1;
+    hit.distance = uintBitsToFloat(_h[index].x);
+    hit.normal   = unpackNormal(_h[index].y);
+    hit.material = int(_h[index].z) - 1;
 
     return hit;
 }
@@ -127,7 +127,7 @@ void storeHit(uint index, Hit hit)
     uint n = packNormal(hit.normal);
     uint m = uint(hit.material + 1);
 
-    __h[index] = uvec4(d, n, m, 0);
+    _h[index] = uvec4(d, n, m, 0);
 }
 
 #define MATERIAL_DIFFUSE 0
@@ -357,7 +357,7 @@ void main()
     
     if (hit.material == -1)
     {
-        updateScreenBuffer(ray.pixelidx, __t[index] * sky_color);
+        updateScreenBuffer(ray.pixelidx, _t[index] * sky_color);
         return;
     }
 
@@ -365,12 +365,12 @@ void main()
 
     if (mat.emissive.x > 0 || mat.emissive.y > 0 || mat.emissive.z > 0)
     {
-        updateScreenBuffer(ray.pixelidx, __t[index] * mat.emissive);
+        updateScreenBuffer(ray.pixelidx, _t[index] * mat.emissive);
         return;
     }
 
     vec3 bounce;
-    vec4 throughput = __t[index];
+    vec4 throughput = _t[index];
 
     if (mat.type == MATERIAL_DIELECTRIC)
     {
@@ -451,9 +451,9 @@ void main()
 
     if (atomicAnd(lockstep, 0) == 1)
     {
-        thread_index = atomicAdd(__q, thread_count);
+        thread_index = atomicAdd(_q, thread_count);
     }
 
     storeRay(thread_index + q, ray);
-    __t[thread_index + q] = throughput;
+    _t[thread_index + q] = throughput;
 }
