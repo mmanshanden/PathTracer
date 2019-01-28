@@ -24,6 +24,13 @@ namespace PathTracer
             this.accelerator = new Accelerator(this.triangles, this.nodes);
             this.lut = new Dictionary<Material, int>();
         }
+        
+        public void Clear()
+        {
+            this.materials.Clear();
+            this.accelerator.Clear();
+            this.lut.Clear();
+        }
 
         public void AddMeshNormalized(string path)
         {

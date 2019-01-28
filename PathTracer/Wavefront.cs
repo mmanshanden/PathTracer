@@ -61,7 +61,7 @@ namespace PathTracer
 
             program.Use();
             GL.DispatchCompute(r, 1, 1);
-            //GL.MemoryBarrier(MemoryBarrierFlags.ShaderStorageBarrierBit);
+            GL.MemoryBarrier(MemoryBarrierFlags.ShaderStorageBarrierBit);
         }
 
         public void Allocate(int n)

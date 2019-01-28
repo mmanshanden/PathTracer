@@ -118,6 +118,9 @@ namespace PathTracer
         {
             this.references.Clear();
             this.primitives.Clear();
+
+            this.triangles.Clear();
+            this.nodes.Clear();
         }
 
         private int Parition(Node node)

@@ -14,6 +14,7 @@ namespace PathTracer
 
         // private static readonly Vector4 SkyColor = Vector4.Zero;
         private static readonly Vector4 SkyColor = new Vector4(142.0f / 255.0f, 178.0f / 255.0f, 237.0f / 255.0f, 1);
+        private static readonly Random random = new Random();
 
         private readonly Window window;
         
@@ -26,6 +27,7 @@ namespace PathTracer
 
         private Camera camera;
         private Scene scene;
+        private int seed;
 
         public int Samples => this.frameState.Data.Samples;
 
@@ -46,8 +48,8 @@ namespace PathTracer
 
             this.renderState = new Uniform<State.RenderState>(0);
             this.frameState = new Uniform<State.FrameState>(1);
-
-            this.InitializeScene();
+            
+            this.InitializeScene(11);
             this.scene.CopyToDevice();
 
             this.wavefront = new Wavefront();
@@ -62,8 +64,8 @@ namespace PathTracer
             return new Vector4(x, y, z, 0);
         }
 
-        private void InitializeScene()
-        {
+        private void InitializeScene(int seed)
+        {            
             Material tile1 = new Material()
             {
                 Color = new Vector4(0.7f, 0.7f, 0.9f, 0),
@@ -78,11 +80,12 @@ namespace PathTracer
                 Roughness = 0.16f
             };
 
+            this.scene.AddMesh("Assets/Mesh/light.obj");
             this.scene.GenerateTiledFoloor(tile1, tile2);
 
             // load some random stuff
 
-            Random rng = new Random(5);
+            Random rng = new Random(seed);
 
             for (int i = 0; i < 60; i++)
             {
@@ -215,6 +218,19 @@ namespace PathTracer
                 this.frameState.Data.Samples = 0;
                 this.window.ClientSize = new OpenTK.Size(512, 512);
                 this.camera = new Camera(new Vector3(0, 2, 15), Vector3.UnitY * 3);
+            }
+
+            if (keystate.IsKeyDown(Key.P))
+            {
+                this.scene.Clear();
+
+                int seed = random.Next();
+                this.InitializeScene(seed);
+
+                this.scene.CopyToDevice();
+                this.frameState.Data.Samples = 0;
+
+                Console.WriteLine($"Regenerated scene using seed: {seed}");
             }
 
             this.camera.SetUniform(this.frameState);
