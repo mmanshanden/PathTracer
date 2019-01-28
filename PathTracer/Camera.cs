@@ -8,6 +8,9 @@ namespace PathTracer
 {
     class Camera
     {
+        private const float MoveSpeed = 5.0f;
+        private const float RotateSpeed = 1.5f;
+
         private readonly Window window;
         private readonly Scene scene;
 
@@ -22,7 +25,6 @@ namespace PathTracer
         public float Focal
         {
             get => this.focal;
-            set => this.focal = value;
         }
 
         public Camera(Window window, Scene scene)
@@ -51,25 +53,30 @@ namespace PathTracer
             float ar = this.window.Width / (float)this.window.Height;
 
             Vector3 c = this.position + this.focal * this.forward;
-            p1 = c - 0.5f * this.focal * ar * this.right + 0.5f * this.focal * this.up;
-            p2 = c + 0.5f * this.focal * ar * this.right + 0.5f * this.focal * this.up;
-            p3 = c - 0.5f * this.focal * ar * this.right - 0.5f * this.focal * this.up;
+            this.p1 = c - 0.5f * this.focal * ar * this.right + 0.5f * this.focal * this.up;
+            this.p2 = c + 0.5f * this.focal * ar * this.right + 0.5f * this.focal * this.up;
+            this.p3 = c - 0.5f * this.focal * ar * this.right - 0.5f * this.focal * this.up;
+
+            this.target = this.position + this.forward;
         }
 
-        public bool HandleInput(KeyboardState state)
+        public bool HandleInput(KeyboardState state, float dt)
         {
             bool changed = false;
 
-            if (state[Key.A]) { changed = true; this.position -= this.right * 0.1f; this.target -= this.right * 0.1f; }
-            if (state[Key.D]) { changed = true; this.position += this.right * 0.1f; this.target += this.right * 0.1f; }
-            if (state[Key.W]) { changed = true; this.position += this.forward * 0.1f; }
-            if (state[Key.S]) { changed = true; this.position -= this.forward * 0.1f; }
-            if (state[Key.R]) { changed = true; this.position += this.up * 0.1f; this.target += this.up * 0.1f; }
-            if (state[Key.F]) { changed = true; this.position -= this.up * 0.1f; this.target -= this.up * 0.1f; }
-            if (state[Key.Up]) { changed = true; this.target += this.up * 0.3f; }
-            if (state[Key.Down]) { changed = true; this.target -= this.up * 0.3f; }
-            if (state[Key.Left]) { changed = true; this.target -= this.right * 0.3f; }
-            if (state[Key.Right]) { changed = true; this.target += this.right * 0.3f; }
+            float move = MoveSpeed * dt;
+            float rotate = RotateSpeed * dt;
+
+            if (state[Key.A]) { changed = true; this.position -= this.right * move; this.target -= this.right * move; }
+            if (state[Key.D]) { changed = true; this.position += this.right * move; this.target += this.right * move; }
+            if (state[Key.W]) { changed = true; this.position += this.forward * move; this.target += this.forward * move; }
+            if (state[Key.S]) { changed = true; this.position -= this.forward * move; this.target -= this.forward * move; }
+            if (state[Key.Q]) { changed = true; this.position += this.up * move; this.target += this.up * move; }
+            if (state[Key.E]) { changed = true; this.position -= this.up * move; this.target -= this.up * move; }
+            if (state[Key.Up]) { changed = true; this.target += this.up * rotate; }
+            if (state[Key.Down]) { changed = true; this.target -= this.up * rotate; }
+            if (state[Key.Left]) { changed = true; this.target -= this.right * rotate; }
+            if (state[Key.Right]) { changed = true; this.target += this.right * rotate; }
 
             if (changed)
             {

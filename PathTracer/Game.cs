@@ -9,9 +9,6 @@ namespace PathTracer
 {
     class Game : IDisposable
     {
-        const float MOVESPEED = 4.5f;
-        const float TURNSPEED = 1.0f;
-
         // private static readonly Vector4 SkyColor = Vector4.Zero;
         private static readonly Vector4 SkyColor = new Vector4(142.0f / 255.0f, 178.0f / 255.0f, 237.0f / 255.0f, 1);
         private static readonly Random random = new Random();
@@ -155,7 +152,7 @@ namespace PathTracer
 
         public void Update(float dt, KeyboardState keystate)
         {
-            bool changed = this.camera.HandleInput(keystate);
+            bool changed = this.camera.HandleInput(keystate, dt);
 
             if (changed)
             {

@@ -132,7 +132,7 @@ void storeHit(uint index, Hit hit)
     _h[index] = uvec4(d, n, m, 0);
 }
 
-Ray generateRay(const ivec2 screen_pos, inout uint seed)
+Ray generateRay(const uvec2 screen_pos, inout uint seed)
 {
     const float r0 = randomFloat(seed);
     const float r1 = randomFloat(seed);
@@ -174,15 +174,17 @@ void main()
     uint seed = index * 57028723 * frames * 87029659 + 2983742873;
     xorShift(seed); xorShift(seed); xorShift(seed); 
 
-    ivec2 group_count = ivec2(screen.width / 8, screen.height / 8);
-    ivec2 screen_size = ivec2(group_count.x * 8, group_count.y * 8);
+    uvec2 group_count = ivec2(screen.width / 8, screen.height / 8);
+    uvec2 screen_size = ivec2(group_count.x * 8, group_count.y * 8);
 
     uint group_index = index >> 6;
     
-    ivec2 group_pos = ivec2(group_index % group_count.x, group_index / group_count.x);
-    ivec2 local_pos = ivec2(gl_LocalInvocationIndex % 8, gl_LocalInvocationIndex / 8);
+    uvec2 group_pos = ivec2(group_index % group_count.x, group_index / group_count.x);
+    uvec2 local_pos;
+    local_pos.x = compact(gl_LocalInvocationIndex >> 0);
+    local_pos.y = compact(gl_LocalInvocationIndex >> 1);
 
-    ivec2 screen_pos = group_pos * 8 + local_pos;
+    uvec2 screen_pos = group_pos * 8 + local_pos;
 
     if (screen_pos.x > screen_size.x || screen_pos.y > screen_size.y)
     {
