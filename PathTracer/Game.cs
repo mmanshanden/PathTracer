@@ -79,6 +79,7 @@ namespace PathTracer
             this.state = new Uniform<State>(1);
             this.state.Data.SkyColor = SkyColor;
 
+            this.scene = new Scene();
             this.InitializeScene();
             this.scene.CopyToDevice();
 
@@ -88,62 +89,37 @@ namespace PathTracer
 
         private void InitializeScene()
         {
-            Material glass = new Material()
+            Material material = new Material()
             {
-                Color = new Vector4(0.92f, 1, 0.92f, 1),
-                Type = MaterialType.Dielectric,
-                Index = 1.2f
+                Color = new Vector4(0.2f, 0.8f, 0.2f, 0),
+                Type = MaterialType.Diffuse,
+                Index = 1.5f,
             };
 
-            Func<float, Material> alpha_mat = (float alpha) =>
-            {
-                return new Material()
-                {
-                    Color = new Vector4(1.00f, 0.71f, 0.295f, 0.0f),
-                    Type = MaterialType.Metal,
-                    Alpha = alpha
-                };
-            };
-
-            Material green = new Material()
-            {
-                Color = new Vector4(0.2f, 0.8f, 0.2f, 0.0f),
-                Type = MaterialType.Metal,
-                Alpha = 0.5f
-            };
-
-            Material floot1 = new Material()
+            Material tile1 = new Material()
             {
                 Color = new Vector4(0.8f),
                 Type = MaterialType.Metal,
                 Alpha = 0.18f
             };
 
-            Material floot2 = new Material()
+            Material tile2 = new Material()
             {
                 Color = new Vector4(0.8f),
                 Type = MaterialType.Metal,
                 Alpha = 0.25f
             };
 
-            this.scene = new Scene();
-            
-            //this.scene.AddMesh("Assets/Mesh/floor.obj");
             this.scene.AddMesh("Assets/Mesh/light.obj");
-            
+            this.scene.GenerateTiledFoloor(tile1, tile2);
 
-            this.scene.GenerateTiledFoloor(floot1, floot2);
-
-            for (int i = 0; i < 10; i++)
+            for (int x = -1; x <= 1; x++)
             {
-                var mat = Matrix4x4.CreateTranslation((-5 + i) * 1.3f, 0, 0) * Matrix4x4.CreateScale(0.5f);
-                this.scene.AddMeshNormalized("Assets/Mesh/torus.obj", mat, alpha_mat(0.01f * i));
-            }
-
-            for (int i = 0; i < 10; i++)
-            {
-                var mat = Matrix4x4.CreateTranslation((-5 + i) * 1.3f, 0, 2) * Matrix4x4.CreateScale(0.5f);
-                this.scene.AddMeshNormalized("Assets/Mesh/bunny.obj", mat, alpha_mat(0.1f * i));
+                for (int y = -1; y <= 1; y++)
+                {
+                    var mat = Matrix4x4.CreateScale(0.8f) * Matrix4x4.CreateTranslation(x, 0, y);
+                    this.scene.AddMeshNormalized("Assets/Mesh/bunny.obj", mat, material);
+                }
             }
         }
 
