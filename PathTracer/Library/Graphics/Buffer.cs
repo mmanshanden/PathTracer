@@ -9,6 +9,8 @@ namespace PathTracer.Library.Graphics
     class Buffer<T> : BindableResource, IEnumerable<T>
         where T : struct
     {
+        private static readonly int current = -1;
+
         private readonly int binding;
         private readonly int stride;
 
@@ -19,8 +21,24 @@ namespace PathTracer.Library.Graphics
 
         public T this[int index]
         {
-            get => this.data[index];
-            set => this.data[index] = value;
+            get
+            {
+                if (index >= this.count)
+                {
+                    throw new IndexOutOfRangeException();
+                }
+
+                return this.data[index];
+            }
+            set
+            {
+                if (index >= this.count)
+                {
+                    throw new IndexOutOfRangeException();
+                }
+
+                this.data[index] = value;
+            }
         }
 
         public Buffer(int binding)
@@ -59,7 +77,10 @@ namespace PathTracer.Library.Graphics
 
         public void CopyFromDevice()
         {
-            this.data = new T[this.allocated];
+            if (this.data.Length < this.allocated)
+            {
+                this.data = new T[this.allocated];
+            }
 
             this.Bind();
 
@@ -79,11 +100,6 @@ namespace PathTracer.Library.Graphics
 
             this.Bind();
 
-            int size = this.stride * this.count / 1024;
-            string type = this.data[0].GetType().Name;
-
-            Console.WriteLine($"Transfering {size}K from Buffer<{type}> (binding={this.binding}, stride={this.stride}, count={this.count})");
-
             if (this.count == this.allocated)
             {
                 GL.BufferSubData(
@@ -94,6 +110,11 @@ namespace PathTracer.Library.Graphics
             }
             else
             {
+                int size = this.stride * this.count / 1024;
+                string type = this.data[0].GetType().Name;
+
+                Console.WriteLine($"Transfering {size}K from Buffer<{type}> (binding={this.binding}, stride={this.stride}, count={this.count})");
+
                 GL.BufferData(
                     BufferTarget.ShaderStorageBuffer,
                     this.stride * this.count,
@@ -178,7 +199,10 @@ namespace PathTracer.Library.Graphics
 
         protected override void BindGraphicsResource()
         {
-            GL.BindBuffer(BufferTarget.ShaderStorageBuffer, this.Handle);
+            if (current != this.Handle)
+            {
+                GL.BindBuffer(BufferTarget.ShaderStorageBuffer, this.Handle);
+            }
         }
 
         protected override void FreeGraphicsResource()

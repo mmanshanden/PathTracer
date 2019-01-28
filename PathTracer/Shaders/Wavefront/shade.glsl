@@ -5,7 +5,7 @@
 #define PI      3.141592653589793238462643383279502
 #define INVPI   0.318309886183790671537767526745028
 
-layout(local_size_x = 32) in;
+layout(local_size_x = 64) in;
 
 void xorShift(inout uint seed)
 {
@@ -78,11 +78,12 @@ layout(std140, binding=1) uniform frame_state
 };
 
 layout(rgba32f, binding=0) uniform image2D     screen_buffer;
-layout(         binding=0) uniform atomic_uint atomic;
 layout(std430,  binding=0) buffer              buffer_ray_direction      { vec4  __d[]; };
 layout(std430,  binding=1) buffer              buffer_ray_origin         { vec4  __o[]; };
 layout(std430,  binding=2) buffer              buffer_sample_throughput  { vec4  __t[]; };
 layout(std430,  binding=3) buffer              buffer_intersection       { uvec4 __h[]; };
+layout(std430,  binding=4) buffer              buffer_atomics            { uint  __q; uint __p; };
+
 
 void updateScreenBuffer(const uint pixelidx, const vec4 color)
 {
@@ -180,6 +181,10 @@ float pdf(const vec3 n, const vec3 r)
     return ndotr * INVPI;
 }
 
+shared uint lockstep;
+shared uint thread_index;
+shared uint thread_count;
+
 void main()
 {
     const uint index = gl_GlobalInvocationID.x;
@@ -272,8 +277,16 @@ void main()
     ray.direction  = bounce;
     ray.reciprocal = 1.0 / bounce;
     
-    uint q = atomicCounterIncrement(atomic);
+    thread_count = 0;
+    lockstep = 1;
+    
+    uint q = atomicAdd(thread_count, 1);
 
-    storeRay(q, ray);
-    __t[q] = throughput;
+    if (atomicAnd(lockstep, 0) == 1)
+    {
+        thread_index = atomicAdd(__q, thread_count);
+    }
+
+    storeRay(thread_index + q, ray);
+    __t[thread_index + q] = throughput;
 }

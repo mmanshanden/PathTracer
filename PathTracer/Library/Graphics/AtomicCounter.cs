@@ -4,11 +4,11 @@ using System.Runtime.InteropServices;
 
 namespace PathTracer.Library.Graphics
 {
-    class Atomic : BindableResource
+    class AtomicCounter : BindableResource
     {
         private int binding;
 
-        public Atomic(int binding)
+        public AtomicCounter(int binding)
             : base(GL.GenBuffer(), BufferTarget.AtomicCounterBuffer)
         {
             this.binding = binding;

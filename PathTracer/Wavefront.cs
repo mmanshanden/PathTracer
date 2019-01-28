@@ -11,12 +11,11 @@ namespace PathTracer
         private readonly Buffer<Vector4> rayOrigin;
         private readonly Buffer<Vector4> sampleThroughput;
         private readonly Buffer<Vector4> intersection;
+        private readonly Buffer<uint>    atomics;
 
         private readonly ShaderProgram generate;
         private readonly ShaderProgram extend;
         private readonly ShaderProgram shade;
-
-        private readonly Atomic atomic;
 
         private uint pixels;
 
@@ -26,6 +25,7 @@ namespace PathTracer
             this.rayOrigin          = new Buffer<Vector4>(1);
             this.sampleThroughput   = new Buffer<Vector4>(2);
             this.intersection       = new Buffer<Vector4>(3);
+            this.atomics            = new Buffer<uint>(4);
 
             this.generate = new ShaderProgram(
                 ShaderArgument.Load(ShaderType.ComputeShader, "Shaders/Wavefront/generate.glsl"));
@@ -35,36 +35,33 @@ namespace PathTracer
 
             this.shade = new ShaderProgram(
                 ShaderArgument.Load(ShaderType.ComputeShader, "Shaders/Wavefront/shade.glsl"));
-
-            this.atomic = new Atomic(0);
         }
 
         public void Invoke()
         {
             uint n = this.pixels;
             this.InvokeShader(this.generate, n);
-
-            int i;
-
-            for (i = 0; i < 20 && n > 50; i++)
+            
+            for (int i = 0; i < 20 && n > 50; i++)
             {
-                this.atomic.Reset();
+                this.atomics[0] = 0;
+                this.atomics.CopyToDevice();
                 
                 this.InvokeShader(this.extend, n);
                 this.InvokeShader(this.shade, n);
 
-                n = this.atomic.Read();
+                this.atomics.CopyFromDevice();
+                n = this.atomics[0];
             }
-
-            Console.WriteLine(i);
         }
 
         private void InvokeShader(ShaderProgram program, uint n)
         {
-            int r = (int)MathF.Ceiling(n / 32.0f);
+            int r = (int)MathF.Ceiling(n / 64.0f);
 
             program.Use();
             GL.DispatchCompute(r, 1, 1);
+            GL.MemoryBarrier(MemoryBarrierFlags.ShaderStorageBarrierBit);
         }
 
         public void Allocate(int n)
@@ -73,6 +70,12 @@ namespace PathTracer
             this.rayDirection.Allocate(n);
             this.sampleThroughput.Allocate(n);
             this.intersection.Allocate(n);
+
+            this.atomics.Clear();
+            this.atomics.Add(0);
+            this.atomics.Add(0);
+
+            this.atomics.CopyToDevice();
 
             this.pixels = (uint)n;
         }

@@ -80,9 +80,9 @@ namespace PathTracer
             this.game.Draw((float)e.Time);
             this.SwapBuffers();
 
-            if (this.time > 0.5)
+            if (this.time > 1.0f)
             {
-                this.fps = (this.frames << 1) + " | " + (this.time / this.frames) + " | " + this.game.Samples;
+                this.fps = (this.frames) + " | " + (this.time / this.frames) + " | " + this.game.Samples;
                 this.time = 0.0;
                 this.frames = 0;
             }
@@ -90,7 +90,7 @@ namespace PathTracer
             this.time += e.Time;
             this.frames += 1;
 
-            this.Title = this.fps;
+            this.Title = (1.0 / e.Time).ToString("0.00") + " | " + this.fps;
         }
     }
 }

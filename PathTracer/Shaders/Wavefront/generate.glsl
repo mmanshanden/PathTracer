@@ -5,7 +5,7 @@
 #define PI      3.141592653589793238462643383279502
 #define INVPI   0.318309886183790671537767526745028
 
-layout(local_size_x = 32) in;
+layout(local_size_x = 64) in;
 
 void xorShift(inout uint seed)
 {
@@ -78,11 +78,11 @@ layout(std140, binding=1) uniform frame_state
 };
 
 layout(rgba32f, binding=0) uniform image2D     screen_buffer;
-layout(         binding=0) uniform atomic_uint atomic;
 layout(std430,  binding=0) buffer              buffer_ray_direction      { vec4  __d[]; };
 layout(std430,  binding=1) buffer              buffer_ray_origin         { vec4  __o[]; };
 layout(std430,  binding=2) buffer              buffer_sample_throughput  { vec4  __t[]; };
 layout(std430,  binding=3) buffer              buffer_intersection       { uvec4 __h[]; };
+layout(std430,  binding=4) buffer              buffer_atomics            { uint  __q; uint __p; };
 
 void updateScreenBuffer(const uint pixelidx, const vec4 color)
 {
@@ -129,10 +129,8 @@ void storeHit(uint index, Hit hit)
     __h[index] = uvec4(d, n, m, 0);
 }
 
-Ray generateRay(const uint pixelidx, inout uint seed)
+Ray generateRay(const ivec2 screen_pos, inout uint seed)
 {
-    const ivec2 screen_pos = ivec2(pixelidx % screen.width, pixelidx / screen.width);
-
     const float x = (randomFloat(seed) + screen_pos.x) / float(screen.width) - 0.5;
     const float y = (randomFloat(seed) + screen_pos.y) / float(screen.height) - 0.5;
 
@@ -145,8 +143,20 @@ Ray generateRay(const uint pixelidx, inout uint seed)
     r.direction  = d;
     r.origin     = camera.position.xyz;
     r.reciprocal = 1.0 / d;
-    r.pixelidx   = pixelidx;
+    r.pixelidx   = screen_pos.x + screen_pos.y * screen.width;
     return r;
+}
+
+
+// https://fgiesen.wordpress.com/2009/12/13/decoding-morton-codes/
+uint compact(uint x)
+{
+  x &= 0x55555555;                  // x = -f-e -d-c -b-a -9-8 -7-6 -5-4 -3-2 -1-0
+  x = (x ^ (x >>  1)) & 0x33333333; // x = --fe --dc --ba --98 --76 --54 --32 --10
+  x = (x ^ (x >>  2)) & 0x0f0f0f0f; // x = ---- fedc ---- ba98 ---- 7654 ---- 3210
+  x = (x ^ (x >>  4)) & 0x00ff00ff; // x = ---- ---- fedc ba98 ---- ---- 7654 3210
+  x = (x ^ (x >>  8)) & 0x0000ffff; // x = ---- ---- ---- ---- fedc ba98 7654 3210
+  return x;
 }
 
 void main()
@@ -156,7 +166,24 @@ void main()
     uint seed = index * 57028723 * frames * 87029659 + 2983742873;
     xorShift(seed); xorShift(seed); xorShift(seed); 
 
-    Ray ray = generateRay(index, seed);  
+    ivec2 group_count = ivec2(screen.width / 8, screen.height / 8);
+    ivec2 screen_size = ivec2(group_count.x * 8, group_count.y * 8);
+
+    uint group_index = index >> 6;
+    
+    ivec2 group_pos = ivec2(group_index % group_count.x, group_index / group_count.x);
+    ivec2 local_pos = ivec2(gl_LocalInvocationIndex % 8, gl_LocalInvocationIndex / 8);
+
+    ivec2 screen_pos = group_pos * 8 + local_pos;
+
+    if (screen_pos.x > screen_size.x || screen_pos.y > screen_size.y)
+    {
+        return;
+    }
+
+    Ray ray = generateRay(screen_pos, seed); 
+    
+    uint q = atomicAdd(__q, 1);
 
     storeRay(index, ray);
     __t[index] = vec4(1);
