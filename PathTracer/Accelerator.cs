@@ -103,7 +103,7 @@ namespace PathTracer
             {
                 Bounds = this.nodes[index].Bounds,
                 LeftFirst = this.nodes.Count - 2,
-                Count = 0
+                Count = this.nodes[index].Bounds.Domain() * -1 - 1
             };
 
             this.Subdivide(this.nodes[index].LeftFirst);

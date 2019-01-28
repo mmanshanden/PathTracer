@@ -226,7 +226,7 @@ Hit intersect_scene(Ray ray)
     hit.distance = FLT_MAX;
     hit.material = -1;
 
-    int candidates[384];
+    int candidates[128]; // size is scene dependent
     int c = 0;
 
     int stack[32];
@@ -236,31 +236,54 @@ Hit intersect_scene(Ray ray)
 
     while (p >= 0)
     {
-        int idx = stack[p--];
+        const int  idx  = stack[p];
+        const Node node = nodes[idx];
+        
+        const Node left  = nodes[node.leftFirst];
+        const Node right = nodes[node.leftFirst + 1];
 
-        if (ray_node_bounds_test(ray, idx, tmin, tmax))
+        const bool lhit = ray_node_bounds_test(ray, node.leftFirst, tmin, tmax);
+        const bool rhit = ray_node_bounds_test(ray, node.leftFirst + 1, tmin, tmax);
+
+        const bool ltraverse = lhit && left.count < 0;
+        const bool rtraverse = rhit && right.count < 0;
+
+        if (lhit && !ltraverse)
         {
-            Node n = nodes[idx];
+            candidates[c] = node.leftFirst;
+            c = min(c + 1, 127);
+        }
 
-            if (n.count > 0)
+        if (rhit && !rtraverse)
+        {
+            candidates[c] = node.leftFirst + 1;
+            c = min(c + 1, 127);
+        }
+
+        if (!ltraverse && !rtraverse)
+        {
+            p--;
+        }
+        else
+        {
+            stack[p] = ltraverse ? node.leftFirst : node.leftFirst + 1;
+
+            if (ltraverse && rtraverse)
             {
-                for (int i = n.leftFirst; i < n.leftFirst + n.count; i++)
-                {
-                    candidates[c] = i;
-                    c = min(c + 1, 383);
-                }
-            }
-            else
-            {
-                stack[++p] = n.leftFirst;
-                stack[++p] = n.leftFirst + 1;
+                stack[++p] = node.leftFirst + 1;
             }
         }
     }
 
     for (int i = 0; i < c; i++)
     {
-        ray_triangle_intersection(ray, candidates[i], hit);
+        const int idx   = candidates[i];
+        const Node node = nodes[idx];
+
+        for (int j = node.leftFirst; j < node.leftFirst + node.count; j++)
+        {
+            ray_triangle_intersection(ray, j, hit);
+        }       
     }
 
     return hit;
