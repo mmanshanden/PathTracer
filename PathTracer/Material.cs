@@ -22,9 +22,8 @@ namespace PathTracer
     enum MaterialType
     {
         Diffuse = 0,
-        Emissive = 1,
-        Mirror = 2,
-        Dielectric = 3,
-        Metal = 4
+        Mirror = 1,
+        Dielectric = 2,
+        Metal = 3
     }
 }

@@ -42,7 +42,7 @@ namespace PathTracer
             uint n = this.pixels;
             this.InvokeShader(this.generate, n);
             
-            for (int i = 0; i < 20 && n > 50; i++)
+            for (int i = 0; i < 10 && n > 50; i++)
             {
                 this.atomics[0] = 0;
                 this.atomics.CopyToDevice();
@@ -61,7 +61,7 @@ namespace PathTracer
 
             program.Use();
             GL.DispatchCompute(r, 1, 1);
-            GL.MemoryBarrier(MemoryBarrierFlags.ShaderStorageBarrierBit);
+            //GL.MemoryBarrier(MemoryBarrierFlags.ShaderStorageBarrierBit);
         }
 
         public void Allocate(int n)

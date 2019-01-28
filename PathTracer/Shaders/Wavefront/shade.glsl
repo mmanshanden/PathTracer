@@ -131,10 +131,9 @@ void storeHit(uint index, Hit hit)
 }
 
 #define MATERIAL_DIFFUSE 0
-#define MATERIAL_EMISSIVE 1
-#define MATERIAL_MIRROR 2
-#define MATERIAL_DIELECTRIC 3
-#define MATERIAL_METAL 4
+#define MATERIAL_MIRROR 1
+#define MATERIAL_DIELECTRIC 2
+#define MATERIAL_METAL 3
 
 struct Material
 {

@@ -41,7 +41,7 @@ namespace PathTracer
                 ShaderArgument.Load(ShaderType.FragmentShader, "Shaders/Quad/fragment.glsl"));
 
             this.screen = new Image(1, 1);
-            this.camera = new Camera(new Vector3(0.5f, 0.5f, 4.0f), Vector3.One * 0.5f);
+            this.camera = new Camera(new Vector3(0, 2, 15), Vector3.UnitY * 3);
             this.scene = new Scene();
 
             this.renderState = new Uniform<State.RenderState>(0);
@@ -53,38 +53,82 @@ namespace PathTracer
             this.wavefront = new Wavefront();
         }
 
+        private Vector4 RandomVector(Random rng)
+        {
+            float x = (float)rng.NextDouble();
+            float y = (float)rng.NextDouble();
+            float z = (float)rng.NextDouble();
+
+            return new Vector4(x, y, z, 0);
+        }
+
         private void InitializeScene()
         {
-            Material material = new Material()
-            {
-                Color = new Vector4(0.2f, 0.8f, 0.2f, 0),
-                Type = MaterialType.Diffuse,
-                Index = 1.5f,
-            };
-
             Material tile1 = new Material()
             {
-                Color = new Vector4(0.8f),
+                Color = new Vector4(0.7f, 0.7f, 0.9f, 0),
                 Type = MaterialType.Metal,
-                Roughness = 0.18f
+                Roughness = 0.1f
             };
 
             Material tile2 = new Material()
             {
-                Color = new Vector4(0.8f),
+                Color = new Vector4(0.7f, 0.7f, 0.9f, 0),
                 Type = MaterialType.Metal,
-                Roughness = 0.25f
+                Roughness = 0.16f
             };
 
-            this.scene.AddMesh("Assets/Mesh/light.obj");
             this.scene.GenerateTiledFoloor(tile1, tile2);
 
-            for (int x = -1; x <= 1; x++)
+            // load some random stuff
+
+            Random rng = new Random(5);
+
+            for (int i = 0; i < 60; i++)
             {
-                for (int y = -1; y <= 1; y++)
+                Material material = new Material()
                 {
-                    var mat = Matrix4x4.CreateScale(0.8f) * Matrix4x4.CreateTranslation(x, 0, y);
-                    this.scene.AddMeshNormalized("Assets/Mesh/bunny.obj", mat, material);
+                    Color = RandomVector(rng),
+                    Emissive = rng.Next(100) > 90 ? RandomVector(rng) * 8 : Vector4.Zero,
+                    Index = 1.4f,
+                    Type = (MaterialType)rng.Next(4),
+                    Roughness = (float)rng.NextDouble()
+                };
+
+                float x = (float)rng.NextDouble() * 12 - 6;
+                float y = (float)rng.NextDouble() * 5 + 1;
+                float z = (float)rng.NextDouble() * 12 - 6;
+
+                float rota = (float)rng.NextDouble() * MathF.PI;
+                float rotb = (float)rng.NextDouble() * MathF.PI;
+                float rotc = (float)rng.NextDouble() * MathF.PI;
+
+                float scale = (float)rng.NextDouble() + 0.5f;
+
+                var matrix = Matrix4x4.Identity;
+                matrix *= Matrix4x4.CreateRotationX(rota);
+                matrix *= Matrix4x4.CreateRotationY(rotb);
+                matrix *= Matrix4x4.CreateRotationZ(rotc);
+                matrix *= Matrix4x4.CreateTranslation(x, y, z);
+                matrix *= Matrix4x4.CreateScale(scale);
+
+                switch (rng.Next(5))
+                {
+                    case 0:
+                        this.scene.AddMeshNormalized("Assets/Mesh/cube.obj", matrix, material);
+                        break;
+                    case 1:
+                        this.scene.AddMeshNormalized("Assets/Mesh/cube.obj", matrix, material);
+                        break;
+                    case 2:
+                        this.scene.AddMeshNormalized("Assets/Mesh/sphere.obj", matrix, material);
+                        break;
+                    case 3:
+                        this.scene.AddMeshNormalized("Assets/Mesh/sphere.obj", matrix, material);
+                        break;
+                    case 4:
+                        this.scene.AddMeshNormalized("Assets/Mesh/bunny.obj", matrix, material);
+                        break;
                 }
             }
         }
@@ -170,7 +214,7 @@ namespace PathTracer
             {
                 this.frameState.Data.Samples = 0;
                 this.window.ClientSize = new OpenTK.Size(512, 512);
-                this.camera = new Camera(new Vector3(0.5f, 0.5f, 4.0f), Vector3.One * 0.5f);
+                this.camera = new Camera(new Vector3(0, 2, 15), Vector3.UnitY * 3);
             }
 
             this.camera.SetUniform(this.frameState);
