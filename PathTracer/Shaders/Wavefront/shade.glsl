@@ -134,6 +134,7 @@ void storeHit(uint index, Hit hit)
 #define MATERIAL_EMISSIVE 1
 #define MATERIAL_MIRROR 2
 #define MATERIAL_DIELECTRIC 3
+#define MATERIAL_METAL 4
 
 struct Material
 {
@@ -141,6 +142,7 @@ struct Material
     vec4 emissive;
     int type;
     float index;
+    float roughness;
 };
 
 layout(std430,  binding=10) buffer material_buffer { Material materials[]; };
@@ -153,7 +155,59 @@ float schlick(const vec3 direction, const vec3 normal, const float n1, const flo
     return r0 + (1.0 - r0) * pow(1 - dot(normal, -direction), 5);
 }
 
-vec3 diffuseReflection(const vec3 normal, inout uint seed)
+vec3 schlick3(const vec3 ks, const vec3 l, const vec3 n)
+{
+    const float ldotn = clamp(dot(l, n), 0, 1);
+    return ks + (1.0 - ks) * pow(1.0 - ldotn, 5);
+}
+
+float smithGgxMasking(vec3 v, vec3 n, float a2)
+{
+    const float ndotv = clamp(dot(n, v), 0, 1);
+
+    const float c = sqrt(a2 + (1.0 - a2) * ndotv * ndotv) + ndotv;
+
+    if (c == 0)
+    {
+        return 0;
+    }
+
+    return 2.0 * ndotv / c;
+}
+
+float smithGgxShadowMasking(vec3 l, vec3 v, vec3 n, float a2)
+{
+    const float ndotl = clamp(dot(n, l), 0, 1);
+    const float ndotv = clamp(dot(n, v), 0, 1);
+
+    const float a = ndotv * sqrt(a2 + (1.0 - a2) * ndotl * ndotl);
+    const float b = ndotl * sqrt(a2 + (1.0 - a2) * ndotv * ndotv);
+
+    const float denom = a + b;
+
+    if (denom == 0)
+    {
+        return 0;
+    }
+
+    return 2.0 * ndotl * ndotv / denom;
+}
+
+float ggxNormalDistribution(vec3 n, vec3 m, float a2)
+{
+    float ndotm = clamp(dot(n, m), 0, 1);
+    float a = ndotm * ndotm * (a2 - 1) + 1;
+    float denom = a * a * PI;
+
+    if (denom == 0)
+    {
+        return 0;
+    }
+
+    return a2 / denom;
+}
+
+vec3 lambertImportanceSample(const vec3 normal, inout uint seed)
 {
     // "random" unit vector
     const vec3 axis = abs(normal.x) > 0.95 ? vec3(0, 1, 0) : vec3(1, 0, 0);
@@ -170,15 +224,108 @@ vec3 diffuseReflection(const vec3 normal, inout uint seed)
     return r * cos(theta) * u + r * sin(theta) * v + sqrt(1.0 - r0) * normal;
 }
 
-vec4 brdf(const Material mat)
+vec4 lambertBrdf(const Material mat)
 {
     return mat.color * INVPI;
 }
 
-float pdf(const vec3 n, const vec3 r)
+float lambertPdf(const vec3 normal, const vec3 bounce)
 {
-    const float ndotr = clamp(dot(n, r), 0, 1);
+    const float ndotr = clamp(dot(normal, bounce), 0, 1);
     return ndotr * INVPI;
+}
+
+vec3 ggxImportance(const vec3 view, const float alpha, inout uint seed)
+{
+    const float r1 = randomFloat(seed);
+    const float r2 = randomFloat(seed);
+
+    const vec3 wo = normalize(vec3(view.x * alpha, view.y * alpha, view.z));
+
+    const vec3 t1 = (wo.z < 0.999) ? normalize(cross(wo, vec3(0, 0, 1))) : vec3(1, 0, 0);
+    const vec3 t2 = cross(t1, wo);
+
+    float a = 1.0f / (1.0f + wo.z);
+    float r = sqrt(r1);
+    float phi = (r2 < a) ? (r2 / a) * PI : PI + (r2 - a) / (1.0f - a) * PI;
+    float p1 = r * cos(phi);
+    float p2 = r * sin(phi) * ((r2 < a) ? 1.0f : wo.z);
+
+    vec3 n = p1 * t1 + p2 * t2 + sqrt(max(0.0, 1.0 - p1 * p1 - p2 * p2)) * wo;
+
+    return normalize(vec3(alpha * n.x, alpha * n.y, max(0.0, n.z)));
+}
+
+float ggxPdf(const vec3 view, const vec3 light, const vec3 m, const vec3 normal, const float a2)
+{
+    const float vdotm = clamp(dot(view, m), 0, 1);
+    const float vdotn = clamp(dot(view, normal), 0, 1);
+
+    const float denom = vdotn * 4;
+
+    if (denom == 0)
+    {
+        return 0;
+    }
+
+    float g1 = smithGgxMasking(view, m, a2);
+    float d = ggxNormalDistribution(normal, m, a2);
+
+    return g1 * d / denom;
+}
+
+vec4 ggxBrdf(const Material mat, const vec3 view, const vec3 light, const vec3 m, const vec3 normal, float a2)
+{
+    vec4 f = vec4(schlick3(mat.color.xyz, m, light), 0);
+    
+    float g2 = smithGgxShadowMasking(light, view, m, a2);
+    float d = ggxNormalDistribution(normal, m, a2);
+    
+    float ldotn = clamp(dot(light, normal), 0, 1);
+    float vdotn = clamp(dot(view, normal), 0, 1);
+    float denom = 4 * ldotn * vdotn;
+
+    if (denom == 0)
+    {
+        return vec4(0);
+    }
+
+    return (f * g2 * d) / denom;
+}
+
+vec4 sampleGgx(const Material mat, const vec3 world_n, const vec3 world_v, out vec3 world_l, inout uint seed)
+{
+    vec3 W = abs(world_n.x) > 0.9 ? vec3(0, 1, 0) : vec3(1, 0, 0);
+
+    vec3 N = world_n;
+    vec3 T = normalize(cross(N, W));
+    vec3 B = cross(N, T);
+
+    // convert to tangent space
+    vec3 v = vec3(dot(world_v, T), dot(world_v, B), dot(world_v, N));
+    vec3 n = vec3(dot(world_n, T), dot(world_n, B), dot(world_n, N));
+
+    vec3 m = ggxImportance(v, mat.roughness, seed);
+    vec3 l = reflect(-v, m);
+
+    if (dot(l, m) < 0)
+    {
+        return vec4(0);
+    }
+
+    // back to world space
+    world_l = l.x * T + l.y * B + l.z * N;
+
+    float a2 = mat.roughness * mat.roughness;
+    vec4 brdf = ggxBrdf(mat, v, l, m, n, a2);
+    float pdf = ggxPdf(v, l, m, n, a2);
+
+    if (pdf == 0)
+    {
+        return vec4(0);
+    }
+
+    return dot(n, l) * brdf / pdf;
 }
 
 shared uint lockstep;
@@ -251,16 +398,22 @@ void main()
 
     if (mat.type == MATERIAL_DIFFUSE)
     {
-        bounce    = diffuseReflection(hit.normal, seed);
-        vec4 brdf = brdf(mat);
-        float pdf = pdf(hit.normal, bounce);
+        bounce           = lambertImportanceSample(hit.normal, seed);
+        const vec4  brdf = lambertBrdf(mat);
+        const float pdf  = lambertPdf(hit.normal, bounce);
 
         if (pdf == 0)
         {
+            throughput = vec4(0);
             return;
         }
 
         throughput = throughput * brdf * dot(bounce, hit.normal) / pdf;
+    }
+
+    if (mat.type == MATERIAL_METAL)
+    {
+        throughput = throughput * sampleGgx(mat, hit.normal, -ray.direction, bounce, seed);
     }
 
     float roulette = max(max(throughput.x, throughput.y), throughput.z);

@@ -11,6 +11,7 @@ namespace PathTracer
         [FieldOffset(16)] public Vector4 Emissive;
         [FieldOffset(32)] public MaterialType Type;
         [FieldOffset(36)] public float Index;
+        [FieldOffset(40)] public float Roughness;
 
         public override int GetHashCode()
         {
@@ -23,6 +24,7 @@ namespace PathTracer
         Diffuse = 0,
         Emissive = 1,
         Mirror = 2,
-        Dielectric = 3
+        Dielectric = 3,
+        Metal = 4
     }
 }

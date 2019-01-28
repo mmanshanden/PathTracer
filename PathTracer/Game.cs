@@ -61,8 +61,9 @@ namespace PathTracer
             Material test = new Material()
             {
                 Color = new Vector4(0.2f, 0.7f, 0.2f, 0),
-                Type = MaterialType.Dielectric,
-                Index = 1.2f
+                Type = MaterialType.Metal,
+                Index = 1.2f,
+                Roughness = 0.1f
             };
 
             for (int x = -1; x <= 1; x++)
