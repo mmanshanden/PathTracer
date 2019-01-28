@@ -55,23 +55,36 @@ namespace PathTracer
 
         private void InitializeScene()
         {
-            this.scene.AddMesh("Assets/Mesh/light.obj");
-            this.scene.AddMesh("Assets/Mesh/floor.obj");
-
-            Material test = new Material()
+            Material material = new Material()
             {
-                Color = new Vector4(0.2f, 0.7f, 0.2f, 0),
-                Type = MaterialType.Metal,
-                Index = 1.2f,
-                Roughness = 0.1f
+                Color = new Vector4(0.2f, 0.8f, 0.2f, 0),
+                Type = MaterialType.Diffuse,
+                Index = 1.5f,
             };
+
+            Material tile1 = new Material()
+            {
+                Color = new Vector4(0.8f),
+                Type = MaterialType.Metal,
+                Roughness = 0.18f
+            };
+
+            Material tile2 = new Material()
+            {
+                Color = new Vector4(0.8f),
+                Type = MaterialType.Metal,
+                Roughness = 0.25f
+            };
+
+            this.scene.AddMesh("Assets/Mesh/light.obj");
+            this.scene.GenerateTiledFoloor(tile1, tile2);
 
             for (int x = -1; x <= 1; x++)
             {
                 for (int y = -1; y <= 1; y++)
                 {
                     var mat = Matrix4x4.CreateScale(0.8f) * Matrix4x4.CreateTranslation(x, 0, y);
-                    this.scene.AddMeshNormalized("Assets/Mesh/bunny.obj", mat, test);
+                    this.scene.AddMeshNormalized("Assets/Mesh/bunny.obj", mat, material);
                 }
             }
         }

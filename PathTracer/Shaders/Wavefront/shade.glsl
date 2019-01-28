@@ -195,7 +195,7 @@ float smithGgxShadowMasking(vec3 l, vec3 v, vec3 n, float a2)
 
 float ggxNormalDistribution(vec3 n, vec3 m, float a2)
 {
-    float ndotm = clamp(dot(n, m), 0, 1);
+    float ndotm = dot(n, m);
     float a = ndotm * ndotm * (a2 - 1) + 1;
     float denom = a * a * PI;
 
@@ -258,8 +258,8 @@ vec3 ggxImportance(const vec3 view, const float alpha, inout uint seed)
 
 float ggxPdf(const vec3 view, const vec3 light, const vec3 m, const vec3 normal, const float a2)
 {
-    const float vdotm = clamp(dot(view, m), 0, 1);
-    const float vdotn = clamp(dot(view, normal), 0, 1);
+    const float vdotm = dot(view, m);
+    const float vdotn = dot(view, normal);
 
     const float denom = vdotn * 4;
 
@@ -281,8 +281,8 @@ vec4 ggxBrdf(const Material mat, const vec3 view, const vec3 light, const vec3 m
     float g2 = smithGgxShadowMasking(light, view, m, a2);
     float d = ggxNormalDistribution(normal, m, a2);
     
-    float ldotn = clamp(dot(light, normal), 0, 1);
-    float vdotn = clamp(dot(view, normal), 0, 1);
+    float ldotn = dot(light, normal);
+    float vdotn = dot(view, normal);
     float denom = 4 * ldotn * vdotn;
 
     if (denom == 0)
@@ -317,6 +317,20 @@ vec4 sampleGgx(const Material mat, const vec3 world_n, const vec3 world_v, out v
     world_l = l.x * T + l.y * B + l.z * N;
 
     float a2 = mat.roughness * mat.roughness;
+    
+    vec4 f = vec4(schlick3(mat.color.xyz, m, l), 0);
+    float g1 = smithGgxMasking(v, m, a2);
+    float g2 = smithGgxShadowMasking(l, v, m, a2);
+
+    if (g1 == 0)
+    {
+        return vec4(0);
+    }
+
+    return f * (g2 / g1);
+
+    // above is derived (simplified) version of below
+
     vec4 brdf = ggxBrdf(mat, v, l, m, n, a2);
     float pdf = ggxPdf(v, l, m, n, a2);
 
